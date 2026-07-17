@@ -1412,9 +1412,9 @@ with tab_unfaelle:
 
                 <b>Jahr:</b>
                 {jahr_text(daten.get("UJAHR"))}<br>
-                <b>Unfallkategorie:</b><br>
+                <b>Unfallkategorie:</b>
                 {kategorie}<br>      
-                <b>Unfalltyp:</b><br>
+                <b>Unfalltyp:</b>
                 {unfalltyp}<br>
                 <b>Uhrzeit:</b>
                 {uhrzeit_text(daten.get("USTUNDE"))}<br><br>
