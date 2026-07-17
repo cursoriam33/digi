@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 
 # ── Seitenkonfiguration ──────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Radverkehr Herzberg",
+    page_title="Radverkehr Berlin-Mitte",
     page_icon="🚲",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -117,7 +117,7 @@ def kpi_card(label, value, sub=""):
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🚲 Radverkehr\n### Herzberg (Elster)")
+    st.markdown("## 🚲 Radverkehr\n### Berlin-Mitte")
     st.markdown("---")
     uploaded_file = st.file_uploader(
         "Eco-Visio CSV hochladen",
