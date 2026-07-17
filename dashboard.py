@@ -595,6 +595,6 @@ with tab_unfaelle:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<small style='color:#9CA3AF'>'Labor-Hausaufgabe im Rahmen der Lehrveranstaltung "Digitalisierung intermodaler Radverkehrsangebote" im Studiengang "Radverkehr in intermodalen Verkehrsnetzen" - Sommersemester 2026' </small>",
+    "<small style='color:#9CA3AF'>Labor-Hausaufgabe im Rahmen der Lehrveranstaltung „Digitalisierung intermodaler Radverkehrsangebote“ im Studiengang „Radverkehr in intermodalen Verkehrsnetzen“ – Sommersemester 2026</small>",
     unsafe_allow_html=True
 )
