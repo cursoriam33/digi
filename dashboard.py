@@ -204,6 +204,7 @@ except Exception as fehler:
 with st.sidebar:
 
     st.markdown("## Radverkehr in Berlin-Mitte")
+    st.markdown("---")
     st.markdown("📈 Radverkehrszählstelle")
 
     auswahl = st.selectbox(
@@ -218,7 +219,7 @@ with st.sidebar:
     zaehler_name = auswahl
     lat = counter["lat"]
     lon = counter["lon"]
-
+    st.markdown("---")
     st.markdown("🚧 Radverkehrsmaßnahmen")
 
     if MASSNAHMEN:
