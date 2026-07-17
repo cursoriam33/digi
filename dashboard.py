@@ -834,8 +834,6 @@ with tab_massnahmen:
 st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
-
-# ── Tab Unfälle ────────────────────────────────────────────────────────────────
 with tab_unfaelle:
     st.subheader(
         "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte"
@@ -856,109 +854,29 @@ with tab_unfaelle:
         "https://gdi.berlin.de/services/wfs/alkis_bezirke"
     )
 
-    # Berliner Fahrradunfälle laden.
-    # Die Einschränkung auf Mitte erfolgt später räumlich.
+    # Erst alle Fahrradunfälle in Berlin laden.
+    # Die Einschränkung auf Mitte erfolgt räumlich anhand der Bezirksgrenze.
     unfall_filter = (
         "ULAND = '11' "
         "AND IstRadInt = 1"
     )
 
     # -------------------------------------------------------------------------
-    # Karte anlegen
+    # Karte
     # -------------------------------------------------------------------------
 
     unfall_karte = folium.Map(
         location=[52.5205, 13.4050],
         zoom_start=13,
-        tiles="CartoDB positron"
+        tiles="CartoDB positron",
+        control_scale=True
     )
 
     # -------------------------------------------------------------------------
     # Hilfsfunktionen
     # -------------------------------------------------------------------------
 
-    def normalisiere_zahl(wert):
-        """
-        Wandelt beispielsweise 2, 2.0, '2' oder '2.0'
-        zuverlässig in die Zeichenkette '2' um.
-        """
-        try:
-            return str(int(float(wert)))
-        except (TypeError, ValueError):
-            return ""
-
-    def unfallfarbe(kategorie):
-        farben = {
-            "1": "darkred",
-            "2": "orange",
-            "3": "blue"
-        }
-
-        return farben.get(
-            normalisiere_zahl(kategorie),
-            "gray"
-        )
-
-    def kategorie_text(kategorie):
-        kategorien = {
-            "1": "Unfall mit Getöteten",
-            "2": "Unfall mit Schwerverletzten",
-            "3": "Unfall mit Leichtverletzten"
-        }
-
-        return kategorien.get(
-            normalisiere_zahl(kategorie),
-            "Unfall mit Personenschaden"
-        )
-
-    def monat_text(monat):
-        monate = {
-            "1": "Januar",
-            "2": "Februar",
-            "3": "März",
-            "4": "April",
-            "5": "Mai",
-            "6": "Juni",
-            "7": "Juli",
-            "8": "August",
-            "9": "September",
-            "10": "Oktober",
-            "11": "November",
-            "12": "Dezember"
-        }
-
-        return monate.get(
-            normalisiere_zahl(monat),
-            "–"
-        )
-
-    def wochentag_text(wochentag):
-        wochentage = {
-            "1": "Sonntag",
-            "2": "Montag",
-            "3": "Dienstag",
-            "4": "Mittwoch",
-            "5": "Donnerstag",
-            "6": "Freitag",
-            "7": "Samstag"
-        }
-
-        return wochentage.get(
-            normalisiere_zahl(wochentag),
-            "–"
-        )
-
-    def uhrzeit_text(stunde):
-        try:
-            return f"{int(float(stunde)):02d}:00 Uhr"
-        except (TypeError, ValueError):
-            return "–"
-
     def finde_bezirke_layername():
-        """
-        Ermittelt den tatsächlichen Feature-Type-Namen
-        aus den WFS-Capabilities.
-        """
         capabilities_response = requests.get(
             bezirke_wfs_url,
             params={
@@ -1005,10 +923,6 @@ with tab_unfaelle:
         )
 
     def lade_bezirke_geojson(layername):
-        """
-        Probiert mehrere vom WFS möglicherweise unterstützte
-        GeoJSON-Ausgabeformate.
-        """
         ausgabeformate = [
             "application/json",
             "application/json; subtype=geojson",
@@ -1050,9 +964,6 @@ with tab_unfaelle:
         )
 
     def finde_mitte_feature(bezirke_daten):
-        """
-        Sucht den Bezirk Mitte unabhängig vom konkreten Attributnamen.
-        """
         for feature in bezirke_daten.get("features", []):
             eigenschaften = feature.get(
                 "properties",
@@ -1077,13 +988,134 @@ with tab_unfaelle:
 
         return None
 
+    def normalisiere_kategorie(kategorie):
+        """
+        Gibt eine der drei gewünschten textlichen Kategorien zurück.
+        Unterstützt sowohl Textwerte als auch vorsorglich numerische Codes.
+        """
+        if kategorie is None:
+            return "Unfall mit Personenschaden"
+
+        text = str(kategorie).strip()
+        text_klein = text.lower()
+
+        if (
+            "unfall mit getöteten" in text_klein
+            or "getötet" in text_klein
+            or "getoetet" in text_klein
+            or "tödlich" in text_klein
+            or "toedlich" in text_klein
+        ):
+            return "Unfall mit Getöteten"
+
+        if (
+            "unfall mit schwerverletzten" in text_klein
+            or "schwerverlet" in text_klein
+            or "schwer verletzt" in text_klein
+        ):
+            return "Unfall mit Schwerverletzten"
+
+        if (
+            "unfall mit leichtverletzten" in text_klein
+            or "leichtverlet" in text_klein
+            or "leicht verletzt" in text_klein
+        ):
+            return "Unfall mit Leichtverletzten"
+
+        # Fallback, falls der Dienst doch numerische Codes liefert
+        try:
+            code = int(float(text))
+
+            kategorien_nach_code = {
+                1: "Unfall mit Getöteten",
+                2: "Unfall mit Schwerverletzten",
+                3: "Unfall mit Leichtverletzten"
+            }
+
+            return kategorien_nach_code.get(
+                code,
+                "Unfall mit Personenschaden"
+            )
+
+        except (TypeError, ValueError):
+            return "Unfall mit Personenschaden"
+
+    def farbe_fuer_kategorie(kategorie_text):
+        farben = {
+            "Unfall mit Getöteten": "darkred",
+            "Unfall mit Schwerverletzten": "orange",
+            "Unfall mit Leichtverletzten": "blue"
+        }
+
+        return farben.get(
+            kategorie_text,
+            "gray"
+        )
+
+    def monat_text(monat):
+        monate = {
+            1: "Januar",
+            2: "Februar",
+            3: "März",
+            4: "April",
+            5: "Mai",
+            6: "Juni",
+            7: "Juli",
+            8: "August",
+            9: "September",
+            10: "Oktober",
+            11: "November",
+            12: "Dezember"
+        }
+
+        try:
+            return monate.get(
+                int(float(monat)),
+                "–"
+            )
+        except (TypeError, ValueError):
+            return "–"
+
+    def wochentag_text(wochentag):
+        wochentage = {
+            1: "Sonntag",
+            2: "Montag",
+            3: "Dienstag",
+            4: "Mittwoch",
+            5: "Donnerstag",
+            6: "Freitag",
+            7: "Samstag"
+        }
+
+        try:
+            return wochentage.get(
+                int(float(wochentag)),
+                "–"
+            )
+        except (TypeError, ValueError):
+            return "–"
+
+    def uhrzeit_text(stunde):
+        try:
+            return f"{int(float(stunde)):02d}:00 Uhr"
+        except (TypeError, ValueError):
+            return "–"
+
+    def jahr_text(jahr):
+        try:
+            return str(
+                int(float(jahr))
+            )
+        except (TypeError, ValueError):
+            return "–"
+
     # -------------------------------------------------------------------------
-    # Daten laden und darstellen
+    # Daten laden
     # -------------------------------------------------------------------------
 
     try:
         # ---------------------------------------------------------------------
-        # 1. Bezirksgrenze Mitte laden
+        # 1. Bezirksgrenze laden
         # ---------------------------------------------------------------------
 
         bezirke_layername = finde_bezirke_layername()
@@ -1099,7 +1131,7 @@ with tab_unfaelle:
         if mitte_feature is None:
             st.error(
                 "Die Bezirksgrenze von Berlin-Mitte "
-                "konnte im WFS nicht gefunden werden."
+                "wurde im WFS nicht gefunden."
             )
             st.stop()
 
@@ -1107,7 +1139,6 @@ with tab_unfaelle:
             mitte_feature["geometry"]
         )
 
-        # Bezirksgrenze darstellen
         folium.GeoJson(
             mitte_feature,
             name="Bezirksgrenze Berlin-Mitte",
@@ -1122,14 +1153,23 @@ with tab_unfaelle:
         ).add_to(unfall_karte)
 
         # ---------------------------------------------------------------------
-        # 2. Fahrradunfälle in Berlin laden
+        # 2. Berliner Fahrradunfälle laden
         # ---------------------------------------------------------------------
 
         unfall_response = requests.get(
             unfall_service_url,
             params={
                 "where": unfall_filter,
-                "outFields": "*",
+                "outFields": (
+                    "UIDENTSTLA,"
+                    "UJAHR,"
+                    "UMONAT,"
+                    "UWOCHENTAG,"
+                    "USTUNDE,"
+                    "UKATEGORIE,"
+                    "IstRadInt,"
+                    "ULAND"
+                ),
                 "returnGeometry": "true",
                 "outSR": "4326",
                 "resultRecordCount": 2000,
@@ -1157,7 +1197,7 @@ with tab_unfaelle:
         )
 
         # ---------------------------------------------------------------------
-        # 3. Unfälle räumlich auf Berlin-Mitte filtern
+        # 3. Räumlich auf Berlin-Mitte filtern
         # ---------------------------------------------------------------------
 
         unfall_features = []
@@ -1178,12 +1218,15 @@ with tab_unfaelle:
             if len(koordinaten) < 2:
                 continue
 
-            longitude = koordinaten[0]
-            latitude = koordinaten[1]
-
             try:
-                longitude = float(longitude)
-                latitude = float(latitude)
+                longitude = float(
+                    koordinaten[0]
+                )
+
+                latitude = float(
+                    koordinaten[1]
+                )
+
             except (TypeError, ValueError):
                 continue
 
@@ -1200,81 +1243,122 @@ with tab_unfaelle:
                 )
 
         # ---------------------------------------------------------------------
-        # Unfallpunkte darstellen
+        # 4. Kategorien zählen
         # ---------------------------------------------------------------------
-        
+
+        kategorie_anzahlen = {
+            "Unfall mit Getöteten": 0,
+            "Unfall mit Schwerverletzten": 0,
+            "Unfall mit Leichtverletzten": 0,
+            "Unfall mit Personenschaden": 0
+        }
+
+        for feature in unfall_features:
+            daten = feature.get(
+                "properties",
+                {}
+            )
+
+            kategorie = normalisiere_kategorie(
+                daten.get("UKATEGORIE")
+            )
+
+            kategorie_anzahlen[kategorie] = (
+                kategorie_anzahlen.get(
+                    kategorie,
+                    0
+                )
+                + 1
+            )
+
+        # ---------------------------------------------------------------------
+        # 5. Kennzahlen
+        # ---------------------------------------------------------------------
+
+        spalte_1, spalte_2, spalte_3, spalte_4 = st.columns(4)
+
+        with spalte_1:
+            st.metric(
+                "Fahrradunfälle",
+                len(unfall_features)
+            )
+
+        with spalte_2:
+            st.metric(
+                "Mit Getöteten",
+                kategorie_anzahlen[
+                    "Unfall mit Getöteten"
+                ]
+            )
+
+        with spalte_3:
+            st.metric(
+                "Mit Schwerverletzten",
+                kategorie_anzahlen[
+                    "Unfall mit Schwerverletzten"
+                ]
+            )
+
+        with spalte_4:
+            st.metric(
+                "Mit Leichtverletzten",
+                kategorie_anzahlen[
+                    "Unfall mit Leichtverletzten"
+                ]
+            )
+
+        # ---------------------------------------------------------------------
+        # 6. Unfallpunkte darstellen
+        # ---------------------------------------------------------------------
+
         for feature in unfall_features:
             geometrie = feature.get(
                 "geometry",
                 {}
             )
-        
+
             koordinaten = geometrie.get(
                 "coordinates",
                 []
             )
-        
+
             if len(koordinaten) < 2:
                 continue
-        
+
             try:
                 longitude = float(
                     koordinaten[0]
                 )
-        
+
                 latitude = float(
                     koordinaten[1]
                 )
-        
+
             except (TypeError, ValueError):
                 continue
-        
+
             daten = feature.get(
                 "properties",
                 {}
             )
-        
+
             kategorie_roh = daten.get(
                 "UKATEGORIE"
             )
-        
-            farbe = unfallfarbe(
+
+            kategorie = normalisiere_kategorie(
                 kategorie_roh
             )
-        
-            bezeichnung = kategorie_text(
-                kategorie_roh
+
+            farbe = farbe_fuer_kategorie(
+                kategorie
             )
-        
-            jahr = daten.get(
-                "UJAHR"
-            )
-        
-            if jahr is None:
-                jahr_text = "–"
-            else:
-                jahr_text = (
-                    normalisiere_zahl(jahr)
-                    or str(jahr)
-                )
-        
-            monat = monat_text(
-                daten.get("UMONAT")
-            )
-        
-            wochentag = wochentag_text(
-                daten.get("UWOCHENTAG")
-            )
-        
-            uhrzeit = uhrzeit_text(
-                daten.get("USTUNDE")
-            )
-        
+
             popup_html = f"""
             <div style="
-                width:270px;
+                width:275px;
                 font-family:Arial, sans-serif;
-                line-height:1.4;
+                line-height:1.45;
             ">
                 <h4 style="
                     color:#b71c1c;
@@ -1283,20 +1367,31 @@ with tab_unfaelle:
                 ">
                     🚨 Fahrradunfall
                 </h4>
-        
+
                 <b>Unfallkategorie:</b><br>
-                {bezeichnung}
+                {kategorie}
                 <br><br>
-        
+
                 <b>Jahr:</b>
-                {jahr_text}<br>
-              
+                {jahr_text(daten.get("UJAHR"))}<br>
+
+                <b>Monat:</b>
+                {monat_text(daten.get("UMONAT"))}<br>
+
+                <b>Wochentag:</b>
+                {wochentag_text(daten.get("UWOCHENTAG"))}<br>
+
                 <b>Uhrzeit:</b>
-                {uhrzeit}<br><br>
-        
+                {uhrzeit_text(daten.get("USTUNDE"))}<br><br>
+
+                <b>Bezirk:</b>
+                Berlin-Mitte<br>
+
+                <b>Fahrradbeteiligung:</b>
+                Ja
             </div>
             """
-        
+
             folium.CircleMarker(
                 location=[
                     latitude,
@@ -1312,11 +1407,11 @@ with tab_unfaelle:
                     popup_html,
                     max_width=320
                 ),
-                tooltip=bezeichnung
+                tooltip=kategorie
             ).add_to(unfall_karte)
 
         # ---------------------------------------------------------------------
-        # 5. Legende
+        # 7. Legende
         # ---------------------------------------------------------------------
 
         legende_html = """
@@ -1325,7 +1420,7 @@ with tab_unfaelle:
             bottom:35px;
             left:35px;
             z-index:9999;
-            background-color:white;
+            background:white;
             padding:12px 15px;
             border:2px solid #777;
             border-radius:7px;
@@ -1393,53 +1488,8 @@ with tab_unfaelle:
         ).add_to(unfall_karte)
 
         # ---------------------------------------------------------------------
-        # 6. Kennzahlen und Karte ausgeben
+        # 8. Karte ausgeben
         # ---------------------------------------------------------------------
-
-        kategorie_anzahlen = {
-            "1": 0,
-            "2": 0,
-            "3": 0
-        }
-
-        for feature in unfall_features:
-            daten = feature.get(
-                "properties",
-                {}
-            )
-
-            kategorie = normalisiere_zahl(
-                daten.get("UKATEGORIE")
-            )
-
-            if kategorie in kategorie_anzahlen:
-                kategorie_anzahlen[kategorie] += 1
-
-        spalte_1, spalte_2, spalte_3, spalte_4 = st.columns(4)
-
-        with spalte_1:
-            st.metric(
-                "Fahrradunfälle",
-                len(unfall_features)
-            )
-
-        with spalte_2:
-            st.metric(
-                "Mit Getöteten",
-                kategorie_anzahlen["1"]
-            )
-
-        with spalte_3:
-            st.metric(
-                "Mit Schwerverletzten",
-                kategorie_anzahlen["2"]
-            )
-
-        with spalte_4:
-            st.metric(
-                "Mit Leichtverletzten",
-                kategorie_anzahlen["3"]
-            )
 
         st_folium(
             unfall_karte,
@@ -1447,6 +1497,41 @@ with tab_unfaelle:
             use_container_width=True,
             key="unfall_karte"
         )
+
+        unbekannte_anzahl = kategorie_anzahlen.get(
+            "Unfall mit Personenschaden",
+            0
+        )
+
+        if unbekannte_anzahl > 0:
+            st.warning(
+                f"{unbekannte_anzahl} Unfallpunkte konnten keiner "
+                "der drei textlichen Unfallkategorien zugeordnet werden."
+            )
+
+            vorhandene_rohwerte = sorted({
+                str(
+                    feature.get(
+                        "properties",
+                        {}
+                    ).get("UKATEGORIE")
+                )
+                for feature in unfall_features
+                if normalisiere_kategorie(
+                    feature.get(
+                        "properties",
+                        {}
+                    ).get("UKATEGORIE")
+                )
+                == "Unfall mit Personenschaden"
+            })
+
+            with st.expander(
+                "Nicht erkannte Werte aus UKATEGORIE"
+            ):
+                st.write(
+                    vorhandene_rohwerte
+                )
 
         st.caption(
             "Quelle Unfalldaten: Unfallatlas der Statistischen Ämter "
