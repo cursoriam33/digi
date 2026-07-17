@@ -381,6 +381,8 @@ with tab_massnahmen:
     # Grundkarte
     # ------------------------------------------------------------------
 
+  ausgewaehltes_feature = massnahme
+
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
         zoom_start=12,
@@ -426,10 +428,238 @@ with tab_massnahmen:
             "type": "FeatureCollection",
             "features": features_mitte
         }
-
         # --------------------------------------------------------------
         # Aktuell ausgewählte Maßnahme vorbereiten
         # --------------------------------------------------------------
+
+        sidebar_projektnummer = None
+
+        if massnahme is not None:
+            sidebar_projektnummer = str(
+                massnahme.get("properties", {}).get(
+                    "projektnummer",
+                    ""
+                )
+            )
+
+        if "massnahmen_sidebar_nummer" not in st.session_state:
+            st.session_state.massnahmen_sidebar_nummer = None
+
+        if "massnahmen_ausgewaehlt" not in st.session_state:
+            st.session_state.massnahmen_ausgewaehlt = massnahme
+
+        if "massnahmen_letzter_klick" not in st.session_state:
+            st.session_state.massnahmen_letzter_klick = None
+
+        # Eine neue Sidebar-Auswahl übernimmt die Auswahl
+        if (
+            sidebar_projektnummer
+            != st.session_state.massnahmen_sidebar_nummer
+        ):
+            st.session_state.massnahmen_ausgewaehlt = massnahme
+            st.session_state.massnahmen_sidebar_nummer = (
+                sidebar_projektnummer
+            )
+
+        ausgewaehltes_feature = (
+            st.session_state.massnahmen_ausgewaehlt
+        )
+
+        ausgewaehlte_nummer = None
+
+        if ausgewaehltes_feature is not None:
+            ausgewaehlte_nummer = str(
+                ausgewaehltes_feature
+                .get("properties", {})
+                .get("projektnummer", "")
+            )
+
+        # --------------------------------------------------------------
+        # Maßnahmen auf der Karte darstellen
+        # --------------------------------------------------------------
+
+        if features_mitte:
+
+            for feature in features_mitte:
+
+                props = feature.get("properties", {})
+
+                feature_nummer = str(
+                    props.get("projektnummer", "")
+                )
+
+                ist_ausgewaehlt = (
+                    ausgewaehlte_nummer != ""
+                    and feature_nummer == ausgewaehlte_nummer
+                )
+
+                farbe = (
+                    "#ff9800"
+                    if ist_ausgewaehlt
+                    else "#1565c0"
+                )
+
+                breite = 9 if ist_ausgewaehlt else 6
+
+                folium.GeoJson(
+                    feature,
+                    style_function=lambda feature,
+                    farbe=farbe,
+                    breite=breite: {
+                        "color": farbe,
+                        "weight": breite,
+                        "opacity": 1
+                    },
+                    highlight_function=lambda feature: {
+                        "color": "#ff9800",
+                        "weight": 9,
+                        "opacity": 1
+                    },
+                    tooltip=folium.GeoJsonTooltip(
+                        fields=[
+                            "strassenname",
+                            "status",
+                            "massnahmen_typ1"
+                        ],
+                        aliases=[
+                            "Straße:",
+                            "Status:",
+                            "Maßnahme:"
+                        ],
+                        sticky=False
+                    )
+                ).add_to(massnahmen_karte)
+
+        else:
+
+            st.warning(
+                "Es wurden keine Radverkehrsmaßnahmen "
+                "für Mitte gefunden."
+            )
+
+        # --------------------------------------------------------------
+        # Legende
+        # --------------------------------------------------------------
+
+        legende = """
+        <div style="
+            position: fixed;
+            bottom: 35px;
+            left: 35px;
+            z-index: 9999;
+            background: white;
+            padding: 12px 15px;
+            border: 2px solid #777;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+        ">
+            <b>Legende</b><br><br>
+
+            <span style="
+                display:inline-block;
+                width:28px;
+                height:6px;
+                background:#1565c0;
+                margin-right:8px;
+            "></span>
+            Radverkehrsmaßnahme<br><br>
+
+            <span style="
+                display:inline-block;
+                width:28px;
+                height:6px;
+                background:#ff9800;
+                margin-right:8px;
+            "></span>
+            ausgewählte Maßnahme
+        </div>
+        """
+
+        massnahmen_karte.get_root().html.add_child(
+            folium.Element(legende)
+        )
+
+        # --------------------------------------------------------------
+        # Karte anzeigen
+        # --------------------------------------------------------------
+
+        kartendaten = st_folium(
+            massnahmen_karte,
+            height=600,
+            use_container_width=True,
+            key="massnahmen_karte",
+            returned_objects=["last_clicked"]
+        )
+
+        # --------------------------------------------------------------
+        # Neuen Kartenklick verarbeiten
+        # --------------------------------------------------------------
+
+        klick = (
+            kartendaten.get("last_clicked")
+            if kartendaten
+            else None
+        )
+
+        if klick:
+
+            klick_id = (
+                round(klick["lat"], 7),
+                round(klick["lng"], 7)
+            )
+
+            # Nur einen neuen Klick auswerten
+            if (
+                klick_id
+                != st.session_state.massnahmen_letzter_klick
+            ):
+
+                klickpunkt = Point(
+                    klick["lng"],
+                    klick["lat"]
+                )
+
+                geklicktes_feature = None
+                kleinster_abstand = float("inf")
+
+                for feature in features_mitte:
+
+                    try:
+                        geometrie = shape(
+                            feature["geometry"]
+                        )
+
+                        abstand = geometrie.distance(
+                            klickpunkt
+                        )
+
+                        if abstand < kleinster_abstand:
+                            kleinster_abstand = abstand
+                            geklicktes_feature = feature
+
+                    except (
+                        ValueError,
+                        TypeError,
+                        KeyError
+                    ):
+                        continue
+
+                if (
+                    geklicktes_feature is not None
+                    and kleinster_abstand < 0.001
+                ):
+                    st.session_state.massnahmen_ausgewaehlt = (
+                        geklicktes_feature
+                    )
+
+                    st.session_state.massnahmen_letzter_klick = (
+                        klick_id
+                    )
+
+                    # Karte neu aufbauen, damit die Linie
+                    # dauerhaft orange dargestellt wird
+                    st.rerun()
 
  
 
