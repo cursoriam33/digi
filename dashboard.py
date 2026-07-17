@@ -269,9 +269,15 @@ with tab_zaehlstelle:
         height=900,
         scrolling=True
     )
-
+    
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
+
+    wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
+
+    # ------------------------------------------------------------------
+    # Grundkarte
+    # ------------------------------------------------------------------
 
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
@@ -280,126 +286,334 @@ with tab_massnahmen:
     )
 
     try:
+        # --------------------------------------------------------------
+        # WFS-Daten laden
+        # --------------------------------------------------------------
 
-        folium.WmsTileLayer(
-            url="https://gdi.berlin.de/services/wms/radverkehrsmassnahmen",
-            layers="radverkehrsmassnahmen",
-            name="Radverkehrsmaßnahmen",
-            fmt="image/png",
-            transparent=True,
-            version="1.3.0",
-            overlay=True,
-            control=True
-        ).add_to(massnahmen_karte)
-
-    except Exception as fehler:
-
-        st.warning(
-            f"Der Maßnahmen-Layer konnte nicht hinzugefügt werden: {fehler}"
+        response = requests.get(
+            wfs_url,
+            params={
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetFeature",
+                "typeNames": "radverkehrsmassnahmen",
+                "outputFormat": "application/json",
+                "srsName": "EPSG:4326"
+            },
+            timeout=60
         )
 
-wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
+        response.raise_for_status()
+        wfs_daten = response.json()
 
-try:
-    response = requests.get(
-        wfs_url,
-        params={
-            "service": "WFS",
-            "version": "2.0.0",
-            "request": "GetFeature",
-            "typeNames": "radverkehrsmassnahmen",
-            "outputFormat": "application/json",
-            "srsName": "EPSG:4326"
-        },
-        timeout=30
-    )
+        # --------------------------------------------------------------
+        # Nur Maßnahmen aus dem Bezirk Mitte übernehmen
+        # --------------------------------------------------------------
 
-    response.raise_for_status()
-    wfs_daten = response.json()
+        features_mitte = []
 
-    # Nur Maßnahmen im Bezirk Mitte
-    features_mitte = []
+        for feature in wfs_daten.get("features", []):
 
-    for feature in wfs_daten.get("features", []):
+            eigenschaften = feature.get("properties", {})
+            bezirk = str(eigenschaften.get("bezirk", "")).strip().lower()
 
-        properties = feature.get("properties", {})
+            if "mitte" in bezirk and feature.get("geometry"):
+                features_mitte.append(feature)
 
-        if str(properties.get("bezirk", "")).lower() == "mitte":
-            features_mitte.append(feature)
+        geojson_mitte = {
+            "type": "FeatureCollection",
+            "features": features_mitte
+        }
 
-    geojson_mitte = {
-        "type": "FeatureCollection",
-        "features": features_mitte
-    }
+        # --------------------------------------------------------------
+        # Maßnahmen auf der Karte darstellen
+        # --------------------------------------------------------------
 
-    if features_mitte:
+        if features_mitte:
 
-        folium.GeoJson(
-            geojson_mitte,
-            name="Maßnahmen anklickbar",
-            style_function=lambda feature: {
-                "color": "#1565c0",
-                "weight": 6,
-                "opacity": 0.01
-            },
-            highlight_function=lambda feature: {
-                "color": "#ff9800",
-                "weight": 8,
-                "opacity": 0.9
-            },
-            tooltip=folium.GeoJsonTooltip(
-                fields=[
-                    "strassenname",
-                    "status",
-                    "massnahmen_typ1"
-                ],
-                aliases=[
-                    "Straße:",
-                    "Status:",
-                    "Maßnahme:"
-                ],
-                sticky=False
-            ),
-            popup=folium.GeoJsonPopup(
-                fields=[
-                    "projektnummer",
-                    "strassenname",
-                    "strassenseite",
-                    "status",
-                    "baustart",
-                    "bauende",
-                    "bauherr",
-                    "projektbeschreibung_lang",
-                    "netz_art1",
-                    "massnahmen_typ1",
-                    "streckenlaenge1"
-                ],
-                aliases=[
-                    "Projektnummer:",
-                    "Straße bzw. Straßenzug:",
-                    "Straßenseite:",
-                    "Status der Maßnahme:",
-                    "Quartal des Baustarts:",
-                    "Quartal des Bauendes:",
-                    "Bauherr:",
-                    "Projektbeschreibung:",
-                    "Netz-Art:",
-                    "Maßnahmen-Typ:",
-                    "Streckenlänge in m:"
-                ],
-                labels=True,
-                localize=True,
-                max_width=500
+            folium.GeoJson(
+                geojson_mitte,
+                name="Radverkehrsmaßnahmen Mitte",
+
+                style_function=lambda feature: {
+                    "color": "#1565c0",
+                    "weight": 6,
+                    "opacity": 0.85
+                },
+
+                highlight_function=lambda feature: {
+                    "color": "#ff9800",
+                    "weight": 9,
+                    "opacity": 1
+                },
+
+                tooltip=folium.GeoJsonTooltip(
+                    fields=[
+                        "strassenname",
+                        "status",
+                        "massnahmen_typ1"
+                    ],
+                    aliases=[
+                        "Straße:",
+                        "Status:",
+                        "Maßnahme:"
+                    ],
+                    sticky=False
+                )
+            ).add_to(massnahmen_karte)
+
+        else:
+            st.warning(
+                "Es wurden keine Radverkehrsmaßnahmen für Mitte gefunden."
             )
+
+        # --------------------------------------------------------------
+        # Legende
+        # --------------------------------------------------------------
+
+        legende = """
+        <div style="
+            position: fixed;
+            bottom: 35px;
+            left: 35px;
+            z-index: 9999;
+            background: white;
+            padding: 12px 15px;
+            border: 2px solid #777;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+        ">
+            <b>Legende</b><br><br>
+
+            <span style="
+                display:inline-block;
+                width:28px;
+                height:6px;
+                background:#1565c0;
+                margin-right:8px;
+            "></span>
+
+            Radverkehrsmaßnahme<br><br>
+
+            <span style="
+                display:inline-block;
+                width:28px;
+                height:6px;
+                background:#ff9800;
+                margin-right:8px;
+            "></span>
+
+            ausgewählte Maßnahme
+        </div>
+        """
+
+        massnahmen_karte.get_root().html.add_child(
+            folium.Element(legende)
+        )
+
+        folium.LayerControl(
+            collapsed=False
         ).add_to(massnahmen_karte)
 
-    else:
-        st.warning("Keine WFS-Maßnahmen für den Bezirk Mitte gefunden.")
+        # --------------------------------------------------------------
+        # Karte anzeigen und Klickposition abfragen
+        # --------------------------------------------------------------
 
-except Exception as fehler:
-    st.warning(
-        f"Die anklickbaren Maßnahmen konnten nicht geladen werden: {fehler}"
-    )
+        kartendaten = st_folium(
+            massnahmen_karte,
+            height=600,
+            use_container_width=True,
+            key="massnahmen_karte",
+            returned_objects=["last_clicked"]
+        )
+
+        st.caption(
+            f"Quelle: Geoportal Berlin / infraVelo · "
+            f"{len(features_mitte)} Maßnahmen im Bezirk Mitte"
+        )
+
+        # --------------------------------------------------------------
+        # Angeklickte Maßnahme ermitteln
+        # --------------------------------------------------------------
+
+        klick = kartendaten.get("last_clicked") if kartendaten else None
+
+        if klick:
+
+            klickpunkt = Point(
+                klick["lng"],
+                klick["lat"]
+            )
+
+            ausgewaehltes_feature = None
+            kleinster_abstand = float("inf")
+
+            for feature in features_mitte:
+
+                try:
+                    geometrie = shape(feature["geometry"])
+                    abstand = geometrie.distance(klickpunkt)
+
+                    if abstand < kleinster_abstand:
+                        kleinster_abstand = abstand
+                        ausgewaehltes_feature = feature
+
+                except (ValueError, TypeError):
+                    continue
+
+            # Etwa 80 bis 100 Meter Toleranz
+            if (
+                ausgewaehltes_feature is not None
+                and kleinster_abstand < 0.001
+            ):
+
+                daten = ausgewaehltes_feature.get(
+                    "properties",
+                    {}
+                )
+
+                st.markdown("---")
+                st.subheader("📋 Informationen zur Maßnahme")
+
+                strasse = daten.get("strassenname") or "–"
+                strassenseite = daten.get("strassenseite") or "–"
+                status = daten.get("status") or "–"
+                baustart = daten.get("baustart") or "–"
+                bauende = daten.get("bauende") or "–"
+                bauherr = daten.get("bauherr") or "–"
+
+                projektbeschreibung = (
+                    daten.get("projektbeschreibung_lang")
+                    or "Keine Projektbeschreibung vorhanden."
+                )
+
+                projektnummer = daten.get("projektnummer") or "–"
+
+                st.markdown(
+                    f"### 🚲 {strasse}"
+                )
+
+                st.caption(
+                    f"Projektnummer: {projektnummer}"
+                )
+
+                spalte1, spalte2 = st.columns(2)
+
+                with spalte1:
+                    st.markdown(
+                        f"""
+                        **Straße bzw. Straßenzug:**  
+                        {strasse}
+
+                        **Straßenseite:**  
+                        {strassenseite}
+
+                        **Status der Maßnahme:**  
+                        {status}
+
+                        **Bauherr:**  
+                        {bauherr}
+                        """
+                    )
+
+                with spalte2:
+                    st.markdown(
+                        f"""
+                        **Quartal des Baustarts:**  
+                        {baustart}
+
+                        **Quartal des Bauendes:**  
+                        {bauende}
+
+                        **Netz-Art:**  
+                        {daten.get("netz_art1") or "–"}
+
+                        **Maßnahmen-Typ:**  
+                        {daten.get("massnahmen_typ1") or "–"}
+
+                        **Streckenlänge:**  
+                        {daten.get("streckenlaenge1") or daten.get("streckenlaenge") or "–"} m
+                        """
+                    )
+
+                st.markdown("#### Projektbeschreibung")
+
+                st.write(projektbeschreibung)
+
+                # Weitere Maßnahmentypen darstellen
+                weitere_massnahmen = []
+
+                for nummer in range(2, 6):
+
+                    netz_art = daten.get(
+                        f"netz_art{nummer}"
+                    )
+
+                    massnahmen_typ = daten.get(
+                        f"massnahmen_typ{nummer}"
+                    )
+
+                    streckenlaenge = daten.get(
+                        f"streckenlaenge{nummer}"
+                    )
+
+                    if netz_art or massnahmen_typ or streckenlaenge:
+
+                        weitere_massnahmen.append({
+                            "Netz-Art": netz_art or "–",
+                            "Maßnahmen-Typ": massnahmen_typ or "–",
+                            "Streckenlänge": (
+                                f"{streckenlaenge} m"
+                                if streckenlaenge
+                                else "–"
+                            )
+                        })
+
+                if weitere_massnahmen:
+
+                    st.markdown(
+                        "#### Weitere Maßnahmen auf dem Straßenzug"
+                    )
+
+                    st.dataframe(
+                        weitere_massnahmen,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+            else:
+                st.info(
+                    "Bitte möglichst genau auf eine blaue "
+                    "Maßnahmenlinie klicken."
+                )
+
+        else:
+            st.info(
+                "Klicke auf eine Maßnahmenlinie, um die "
+                "zugehörigen Informationen unterhalb der Karte anzuzeigen."
+            )
+
+    except requests.exceptions.RequestException as fehler:
+
+        st.error(
+            f"Der WFS-Dienst konnte nicht geladen werden: {fehler}"
+        )
+
+        # Grundkarte trotz Fehler darstellen
+        st_folium(
+            massnahmen_karte,
+            height=600,
+            use_container_width=True,
+            key="massnahmen_karte_fehler"
+        )
+
+    except ValueError as fehler:
+
+        st.error(
+            f"Die WFS-Daten konnten nicht verarbeitet werden: {fehler}"
+        )
+
 folium.LayerControl(
         collapsed=False
     ).add_to(massnahmen_karte)
