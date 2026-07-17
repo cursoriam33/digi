@@ -315,21 +315,19 @@ with tab_start:
             )
         ).add_to(karte)
         
- # Radverkehrsmaßnahmen darstellen
+# Radverkehrsmaßnahmen darstellen
     for feature in MASSNAHMEN.values():
 
         props = feature["properties"]
 
-        # ausgewählte Maßnahme hervorheben
-        if massnahme and (
-            props["projektnummer"]
-            == massnahme["properties"]["projektnummer"]
-        ):
-            farbe = "#ff9800"
-            breite = 7
-        else:
-            farbe = "#1565c0"
-            breite = 4
+        ist_ausgewaehlt = (
+            massnahme is not None
+            and props.get("projektnummer")
+            == massnahme["properties"].get("projektnummer")
+        )
+
+        farbe = "#ff9800" if ist_ausgewaehlt else "#1565c0"
+        breite = 7 if ist_ausgewaehlt else 4
 
         folium.GeoJson(
             feature,
@@ -337,7 +335,25 @@ with tab_start:
                 "color": farbe,
                 "weight": breite,
                 "opacity": 0.9
-            }
+            },
+            highlight_function=lambda feature: {
+                "color": "#ff9800",
+                "weight": 7,
+                "opacity": 1
+            },
+            tooltip=folium.GeoJsonTooltip(
+                fields=[
+                    "strassenname",
+                    "status",
+                    "massnahmen_typ1"
+                ],
+                aliases=[
+                    "Straße:",
+                    "Status:",
+                    "Maßnahme:"
+                ],
+                sticky=False
+            )
         ).add_to(karte)
 
     # Karte erst anzeigen, nachdem alle Marker hinzugefügt wurden
