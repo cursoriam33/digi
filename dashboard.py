@@ -542,47 +542,6 @@ with tab_massnahmen:
 
                 st.write(projektbeschreibung)
 
-                # Weitere Maßnahmentypen darstellen
-                weitere_massnahmen = []
-
-                for nummer in range(2, 6):
-
-                    netz_art = daten.get(
-                        f"netz_art{nummer}"
-                    )
-
-                    massnahmen_typ = daten.get(
-                        f"massnahmen_typ{nummer}"
-                    )
-
-                    streckenlaenge = daten.get(
-                        f"streckenlaenge{nummer}"
-                    )
-
-                    if netz_art or massnahmen_typ or streckenlaenge:
-
-                        weitere_massnahmen.append({
-                            "Netz-Art": netz_art or "–",
-                            "Maßnahmen-Typ": massnahmen_typ or "–",
-                            "Streckenlänge": (
-                                f"{streckenlaenge} m"
-                                if streckenlaenge
-                                else "–"
-                            )
-                        })
-
-                if weitere_massnahmen:
-
-                    st.markdown(
-                        "#### Weitere Maßnahmen auf dem Straßenzug"
-                    )
-
-                    st.dataframe(
-                        weitere_massnahmen,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
             else:
                 st.info(
                     "Bitte möglichst genau auf eine blaue "
