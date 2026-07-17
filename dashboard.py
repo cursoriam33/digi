@@ -269,8 +269,6 @@ with tab_zaehlstelle:
 
 
 with tab_massnahmen:
-    with tab_massnahmen:
-
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
     api_url = "https://www.infravelo.de/api/v1/projects/district/mitte/"
