@@ -845,10 +845,7 @@ with tab_unfaelle:
     # --------------------------------------------------------------
 
     unfall_service_url = (
-        "https://services.arcgis.com/"
-        "P3ePLMYs2RVChkJx/ArcGIS/rest/services/"
-        "Germany_Traffic_Accidents_2025/"
-        "FeatureServer/0/query"
+        "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Germany_Traffic_Accidents_2025/FeatureServer/0/query"
     )
 
     # Berlin = Bundesland 11
