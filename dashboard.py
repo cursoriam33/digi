@@ -259,7 +259,7 @@ tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
     ]
 )
 
-
+# ── Tab Übersicht ────────────────────────────────────────────────────────────────
 with tab_start:
 
     # Karte auf Berlin-Mitte zentrieren
@@ -363,25 +363,76 @@ with tab_start:
         use_container_width=True
     )
 
-with tab_zaehlstelle:
-    st.subheader(f"Zählstelle: {zaehler_name}")
-   
-    components.iframe(
-        src=counter_url,
-        height=900,
-        scrolling=True
-    )
-    
+# ── Tab Zählstellen ────────────────────────────────────────────────────────────────
+
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
-    wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
+    wfs_url = (
+        "https://gdi.berlin.de/services/wfs/"
+        "radverkehrsmassnahmen"
+    )
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------
+    # Ausgangswert aus der Sidebar
+    # --------------------------------------------------------------
+
+    sidebar_feature = massnahme
+
+    sidebar_projektnummer = ""
+
+    if sidebar_feature is not None:
+        sidebar_projektnummer = str(
+            sidebar_feature
+            .get("properties", {})
+            .get("projektnummer", "")
+        )
+
+    # --------------------------------------------------------------
+    # Session State initialisieren
+    # --------------------------------------------------------------
+
+    if "massnahmen_ausgewaehlt" not in st.session_state:
+        st.session_state.massnahmen_ausgewaehlt = sidebar_feature
+
+    if "massnahmen_sidebar_projektnummer" not in st.session_state:
+        st.session_state.massnahmen_sidebar_projektnummer = (
+            sidebar_projektnummer
+        )
+
+    if "massnahmen_letzter_klick" not in st.session_state:
+        st.session_state.massnahmen_letzter_klick = None
+
+    # --------------------------------------------------------------
+    # Neue Sidebar-Auswahl übernehmen
+    # --------------------------------------------------------------
+
+    if (
+        sidebar_projektnummer
+        != st.session_state.massnahmen_sidebar_projektnummer
+    ):
+        st.session_state.massnahmen_ausgewaehlt = sidebar_feature
+
+        st.session_state.massnahmen_sidebar_projektnummer = (
+            sidebar_projektnummer
+        )
+
+        # Alter Kartenklick soll die neue Sidebar-Auswahl
+        # nicht erneut überschreiben
+        st.session_state.massnahmen_letzter_klick = None
+
+    # --------------------------------------------------------------
+    # Aktuell ausgewähltes Feature
+    # --------------------------------------------------------------
+
+    ausgewaehltes_feature = st.session_state.get(
+        "massnahmen_ausgewaehlt",
+        sidebar_feature
+    )
+
+    # --------------------------------------------------------------
     # Grundkarte
-    # ------------------------------------------------------------------
-
-  ausgewaehltes_feature = massnahme
+    # --------------------------------------------------------------
 
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
@@ -390,9 +441,9 @@ with tab_massnahmen:
     )
 
     try:
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
         # WFS-Daten laden
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
 
         response = requests.get(
             wfs_url,
@@ -410,62 +461,27 @@ with tab_massnahmen:
         response.raise_for_status()
         wfs_daten = response.json()
 
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
         # Nur Maßnahmen aus dem Bezirk Mitte übernehmen
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
 
         features_mitte = []
 
         for feature in wfs_daten.get("features", []):
-
             eigenschaften = feature.get("properties", {})
-            bezirk = str(eigenschaften.get("bezirk", "")).strip().lower()
 
-            if "mitte" in bezirk and feature.get("geometry"):
+            bezirk = str(
+                eigenschaften.get("bezirk", "")
+            ).strip().lower()
+
+            if bezirk == "mitte" and feature.get("geometry"):
                 features_mitte.append(feature)
 
-        geojson_mitte = {
-            "type": "FeatureCollection",
-            "features": features_mitte
-        }
-        # --------------------------------------------------------------
-        # Aktuell ausgewählte Maßnahme vorbereiten
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
+        # Kennung der aktuellen Auswahl
+        # ----------------------------------------------------------
 
-        sidebar_projektnummer = None
-
-        if massnahme is not None:
-            sidebar_projektnummer = str(
-                massnahme.get("properties", {}).get(
-                    "projektnummer",
-                    ""
-                )
-            )
-
-        if "massnahmen_sidebar_nummer" not in st.session_state:
-            st.session_state.massnahmen_sidebar_nummer = None
-
-        if "massnahmen_ausgewaehlt" not in st.session_state:
-            st.session_state.massnahmen_ausgewaehlt = massnahme
-
-        if "massnahmen_letzter_klick" not in st.session_state:
-            st.session_state.massnahmen_letzter_klick = None
-
-        # Eine neue Sidebar-Auswahl übernimmt die Auswahl
-        if (
-            sidebar_projektnummer
-            != st.session_state.massnahmen_sidebar_nummer
-        ):
-            st.session_state.massnahmen_ausgewaehlt = massnahme
-            st.session_state.massnahmen_sidebar_nummer = (
-                sidebar_projektnummer
-            )
-
-        ausgewaehltes_feature = (
-            st.session_state.massnahmen_ausgewaehlt
-        )
-
-        ausgewaehlte_nummer = None
+        ausgewaehlte_nummer = ""
 
         if ausgewaehltes_feature is not None:
             ausgewaehlte_nummer = str(
@@ -474,14 +490,12 @@ with tab_massnahmen:
                 .get("projektnummer", "")
             )
 
-        # --------------------------------------------------------------
-        # Maßnahmen auf der Karte darstellen
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
+        # Maßnahmen einzeln darstellen
+        # ----------------------------------------------------------
 
         if features_mitte:
-
             for feature in features_mitte:
-
                 props = feature.get("properties", {})
 
                 feature_nummer = str(
@@ -499,17 +513,19 @@ with tab_massnahmen:
                     else "#1565c0"
                 )
 
-                breite = 9 if ist_ausgewaehlt else 6
+                breite = 9 if ist_ausgewaehlt else 5
 
                 folium.GeoJson(
                     feature,
-                    style_function=lambda feature,
-                    farbe=farbe,
-                    breite=breite: {
-                        "color": farbe,
-                        "weight": breite,
-                        "opacity": 1
-                    },
+                    style_function=(
+                        lambda feature,
+                        farbe=farbe,
+                        breite=breite: {
+                            "color": farbe,
+                            "weight": breite,
+                            "opacity": 1
+                        }
+                    ),
                     highlight_function=lambda feature: {
                         "color": "#ff9800",
                         "weight": 9,
@@ -531,15 +547,14 @@ with tab_massnahmen:
                 ).add_to(massnahmen_karte)
 
         else:
-
             st.warning(
                 "Es wurden keine Radverkehrsmaßnahmen "
                 "für Mitte gefunden."
             )
 
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
         # Legende
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
 
         legende = """
         <div style="
@@ -568,7 +583,7 @@ with tab_massnahmen:
             <span style="
                 display:inline-block;
                 width:28px;
-                height:6px;
+                height:7px;
                 background:#ff9800;
                 margin-right:8px;
             "></span>
@@ -580,9 +595,9 @@ with tab_massnahmen:
             folium.Element(legende)
         )
 
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
         # Karte anzeigen
-        # --------------------------------------------------------------
+        # ----------------------------------------------------------
 
         kartendaten = st_folium(
             massnahmen_karte,
@@ -592,29 +607,30 @@ with tab_massnahmen:
             returned_objects=["last_clicked"]
         )
 
-        # --------------------------------------------------------------
-        # Neuen Kartenklick verarbeiten
-        # --------------------------------------------------------------
-
-        klick = (
-            kartendaten.get("last_clicked")
-            if kartendaten
-            else None
+        st.caption(
+            "Quelle: Geoportal Berlin / infraVelo · "
+            f"{len(features_mitte)} Maßnahmen im Bezirk Mitte"
         )
 
-        if klick:
+        # ----------------------------------------------------------
+        # Kartenklick auswerten
+        # ----------------------------------------------------------
 
+        klick = None
+
+        if kartendaten:
+            klick = kartendaten.get("last_clicked")
+
+        if klick:
             klick_id = (
                 round(klick["lat"], 7),
                 round(klick["lng"], 7)
             )
 
-            # Nur einen neuen Klick auswerten
             if (
                 klick_id
                 != st.session_state.massnahmen_letzter_klick
             ):
-
                 klickpunkt = Point(
                     klick["lng"],
                     klick["lat"]
@@ -624,7 +640,6 @@ with tab_massnahmen:
                 kleinster_abstand = float("inf")
 
                 for feature in features_mitte:
-
                     try:
                         geometrie = shape(
                             feature["geometry"]
@@ -645,6 +660,7 @@ with tab_massnahmen:
                     ):
                         continue
 
+                # Circa 80 bis 100 Meter Toleranz
                 if (
                     geklicktes_feature is not None
                     and kleinster_abstand < 0.001
@@ -657,33 +673,71 @@ with tab_massnahmen:
                         klick_id
                     )
 
-                    # Karte neu aufbauen, damit die Linie
-                    # dauerhaft orange dargestellt wird
                     st.rerun()
 
- 
+                else:
+                    st.session_state.massnahmen_letzter_klick = (
+                        klick_id
+                    )
 
-        # --------------------------------------------------------------
-        # Informationen anzeigen
-        # --------------------------------------------------------------
+                    st.info(
+                        "Bitte möglichst genau auf eine "
+                        "Maßnahmenlinie klicken."
+                    )
+
+        # ----------------------------------------------------------
+        # Aktuelle Auswahl nach Karteninteraktion erneut abrufen
+        # ----------------------------------------------------------
+
+        ausgewaehltes_feature = st.session_state.get(
+            "massnahmen_ausgewaehlt",
+            sidebar_feature
+        )
+
+        # ----------------------------------------------------------
+        # Detailinformationen
+        # ----------------------------------------------------------
 
         if ausgewaehltes_feature is not None:
-
             daten = ausgewaehltes_feature.get(
                 "properties",
                 {}
             )
 
-            st.markdown("---")
-            st.subheader("📋 Informationen zur Maßnahme")
+            strasse = (
+                daten.get("strassenname")
+                or "–"
+            )
 
-            strasse = daten.get("strassenname") or "–"
-            strassenseite = daten.get("strassenseite") or "–"
-            status = daten.get("status") or "–"
-            baustart = daten.get("baustart") or "–"
-            bauende = daten.get("bauende") or "–"
-            bauherr = daten.get("bauherr") or "–"
-            projektnummer = daten.get("projektnummer") or "–"
+            strassenseite = (
+                daten.get("strassenseite")
+                or "–"
+            )
+
+            status = (
+                daten.get("status")
+                or "–"
+            )
+
+            baustart = (
+                daten.get("baustart")
+                or "–"
+            )
+
+            bauende = (
+                daten.get("bauende")
+                or "–"
+            )
+
+            bauherr = (
+                daten.get("bauherr")
+                or "–"
+            )
+
+            projektnummer = (
+                daten.get("projektnummer")
+                or "–"
+            )
 
             projektbeschreibung = (
                 daten.get("projektbeschreibung_lang")
@@ -699,6 +753,9 @@ with tab_massnahmen:
             if streckenlaenge != "–":
                 streckenlaenge = f"{streckenlaenge} m"
 
+            st.markdown("---")
+            st.subheader("📋 Informationen zur Maßnahme")
+
             st.markdown(
                 f"### 🚲 {strasse}"
             )
@@ -710,7 +767,6 @@ with tab_massnahmen:
             spalte1, spalte2 = st.columns(2)
 
             with spalte1:
-
                 st.markdown(
                     f"""
                     **Straße bzw. Straßenzug:**  
@@ -728,7 +784,6 @@ with tab_massnahmen:
                 )
 
             with spalte2:
-
                 st.markdown(
                     f"""
                     **Quartal des Baustarts:**  
@@ -752,19 +807,17 @@ with tab_massnahmen:
             st.write(projektbeschreibung)
 
         else:
-
             st.info(
-                "Wähle in der Sidebar eine Radverkehrsmaßnahme aus "
-                "oder klicke auf eine Maßnahmenlinie."
+                "Wähle in der Sidebar eine Maßnahme aus "
+                "oder klicke auf eine Linie in der Karte."
             )
 
     except requests.exceptions.RequestException as fehler:
-
         st.error(
-            f"Der WFS-Dienst konnte nicht geladen werden: {fehler}"
+            "Der WFS-Dienst konnte nicht geladen werden: "
+            f"{fehler}"
         )
 
-        # Grundkarte trotz Fehler darstellen
         st_folium(
             massnahmen_karte,
             height=600,
@@ -772,12 +825,11 @@ with tab_massnahmen:
             key="massnahmen_karte_fehler"
         )
 
-    except ValueError as fehler:
-
+    except (ValueError, TypeError, KeyError) as fehler:
         st.error(
-            f"Die WFS-Daten konnten nicht verarbeitet werden: {fehler}"
+            "Die WFS-Daten konnten nicht verarbeitet werden: "
+            f"{fehler}"
         )
-
 
 st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
