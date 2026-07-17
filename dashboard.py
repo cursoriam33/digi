@@ -362,6 +362,13 @@ with tab_start:
         height=550,
         use_container_width=True
     )
+    )
+
+    st.caption(
+    "Quelle: Geoportal Berlin / Radverkehrsmaßnahmen (seit 2021); Digitale Plattform Stadtverkehr / Fahrradzählstellen"
+    "Lizenz: Datenlizenz Deutschland – Zero – Version 2.0 (dl-zero-de/2.0)"
+    )
+
 
 # ── Tab Zählstellen ────────────────────────────────────────────────────────────────
 
@@ -619,8 +626,8 @@ with tab_massnahmen:
         )
 
         st.caption(
-            "Quelle: Geoportal Berlin / infraVelo · "
-            f"{len(features_mitte)} Maßnahmen im Bezirk Mitte"
+            "Quelle: Geoportal Berlin / Radverkehrsmaßnahmen (seit 2021)"
+            "Lizenz: Datenlizenz Deutschland – Zero – Version 2.0 (dl-zero-de/2.0)"
         )
 
         # ----------------------------------------------------------
