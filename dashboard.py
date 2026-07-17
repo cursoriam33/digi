@@ -220,10 +220,7 @@ with tab_start:
 
            <b>Bezirk:</b> Berlin-Mitte
 
-            <hr style="margin:8px 0;">
-
-            <b>📈 Radverkehr</b><br><br>
-
+           
             <a href="{daten['url']}"
                target="_blank"
                style="
