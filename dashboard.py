@@ -217,12 +217,41 @@ tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
 
 
 with tab_start:
-    st.subheader("Übersicht Berlin-Mitte")
+     # Karte auf Berlin-Mitte zentrieren
+    karte = folium.Map(
+        location=[52.5205, 13.4050],
+        zoom_start=13,
+        tiles="CartoDB positron"
+    )
 
-    components.iframe(
-        src=viz_url,
-        height=750,
-        scrolling=True
+    for name, daten in ZAEHLSTELLEN.items():
+
+        ist_ausgewaehlt = name == zaehler_name
+
+        marker_farbe = "green" if ist_ausgewaehlt else "blue"
+
+        popup_text = (
+            f"<b>{name}</b><br>"
+            f"EcoCounter-ID: {daten['id']}"
+        )
+
+        folium.Marker(
+            location=[daten["lat"], daten["lon"]],
+            popup=folium.Popup(
+                popup_text,
+                max_width=250
+            ),
+            tooltip=name,
+            icon=folium.Icon(
+                color=marker_farbe,
+                icon="info-sign"
+            )
+        ).add_to(karte)
+
+    st_folium(
+        karte,
+        height=550,
+        use_container_width=True
     )
 
 
