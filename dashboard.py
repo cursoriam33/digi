@@ -1199,120 +1199,120 @@ with tab_unfaelle:
         # --------------------------------------------------------------
 
         for feature in unfall_features:
-    geometrie = feature.get(
-        "geometry",
-        {}
-    )
-
-    koordinaten = geometrie.get(
-        "coordinates",
-        []
-    )
-
-    if len(koordinaten) < 2:
-        continue
-
-    longitude = koordinaten[0]
-    latitude = koordinaten[1]
-
-    daten = feature.get(
-        "properties",
-        {}
-    )
-
-    kategorie_roh = daten.get(
-        "UKATEGORIE"
-    )
-
-    kategorie = normalisiere_kategorie(
-        kategorie_roh
-    )
-
-    farbe = unfallfarbe(
-        kategorie
-    )
-
-    bezeichnung = kategorie_text(
-        kategorie
-    )
-
-    jahr = (
-        daten.get("UJAHR")
-        or "–"
-    )
-
-    monat = monat_text(
-        daten.get("UMONAT")
-    )
-
-    wochentag = wochentag_text(
-        daten.get("UWOCHENTAG")
-    )
-
-    stunde = daten.get(
-        "USTUNDE"
-    )
-
-    try:
-        uhrzeit = (
-            f"{int(float(stunde)):02d}:00 Uhr"
+        geometrie = feature.get(
+            "geometry",
+            {}
         )
-    except (TypeError, ValueError):
-        uhrzeit = "–"
-
-    popup_html = f"""
-    <div style="
-        width:260px;
-        font-family:Arial, sans-serif;
-    ">
-        <h4 style="
-            color:#b71c1c;
-            margin-bottom:10px;
+    
+        koordinaten = geometrie.get(
+            "coordinates",
+            []
+        )
+    
+        if len(koordinaten) < 2:
+            continue
+    
+        longitude = koordinaten[0]
+        latitude = koordinaten[1]
+    
+        daten = feature.get(
+            "properties",
+            {}
+        )
+    
+        kategorie_roh = daten.get(
+            "UKATEGORIE"
+        )
+    
+        kategorie = normalisiere_kategorie(
+            kategorie_roh
+        )
+    
+        farbe = unfallfarbe(
+            kategorie
+        )
+    
+        bezeichnung = kategorie_text(
+            kategorie
+        )
+    
+        jahr = (
+            daten.get("UJAHR")
+            or "–"
+        )
+    
+        monat = monat_text(
+            daten.get("UMONAT")
+        )
+    
+        wochentag = wochentag_text(
+            daten.get("UWOCHENTAG")
+        )
+    
+        stunde = daten.get(
+            "USTUNDE"
+        )
+    
+        try:
+            uhrzeit = (
+                f"{int(float(stunde)):02d}:00 Uhr"
+            )
+        except (TypeError, ValueError):
+            uhrzeit = "–"
+    
+        popup_html = f"""
+        <div style="
+            width:260px;
+            font-family:Arial, sans-serif;
         ">
-            🚨 Fahrradunfall
-        </h4>
-
-        <b>Unfallkategorie:</b><br>
-        {bezeichnung}
-        <br><br>
-
-        <b>Jahr:</b>
-        {jahr}<br>
-
-        <b>Monat:</b>
-        {monat}<br>
-
-        <b>Wochentag:</b>
-        {wochentag}<br>
-
-        <b>Uhrzeit:</b>
-        {uhrzeit}<br><br>
-
-        <b>Bezirk:</b>
-        Berlin-Mitte<br>
-
-        <b>Fahrradbeteiligung:</b>
-        Ja
-    </div>
-    """
-
-    folium.CircleMarker(
-        location=[
-            latitude,
-            longitude
-        ],
-        radius=7,
-        color=farbe,
-        weight=2,
-        fill=True,
-        fill_color=farbe,
-        fill_opacity=0.8,
-        popup=folium.Popup(
-            popup_html,
-            max_width=300
-        ),
-        tooltip=bezeichnung
-    ).add_to(unfall_karte)
+            <h4 style="
+                color:#b71c1c;
+                margin-bottom:10px;
+            ">
+                🚨 Fahrradunfall
+            </h4>
+    
+            <b>Unfallkategorie:</b><br>
+            {bezeichnung}
+            <br><br>
+    
+            <b>Jahr:</b>
+            {jahr}<br>
+    
+            <b>Monat:</b>
+            {monat}<br>
+    
+            <b>Wochentag:</b>
+            {wochentag}<br>
+    
+            <b>Uhrzeit:</b>
+            {uhrzeit}<br><br>
+    
+            <b>Bezirk:</b>
+            Berlin-Mitte<br>
+    
+            <b>Fahrradbeteiligung:</b>
+            Ja
+        </div>
+        """
+    
+        folium.CircleMarker(
+            location=[
+                latitude,
+                longitude
+            ],
+            radius=7,
+            color=farbe,
+            weight=2,
+            fill=True,
+            fill_color=farbe,
+            fill_opacity=0.8,
+            popup=folium.Popup(
+                popup_html,
+                max_width=300
+            ),
+            tooltip=bezeichnung
+        ).add_to(unfall_karte)
     
         # --------------------------------------------------------------
         # Legende
