@@ -362,7 +362,6 @@ with tab_start:
         height=550,
         use_container_width=True
     )
-    )
 
     st.caption(
     "Quelle: Geoportal Berlin / Radverkehrsmaßnahmen (seit 2021); Digitale Plattform Stadtverkehr / Fahrradzählstellen"
