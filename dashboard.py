@@ -254,8 +254,8 @@ tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
     [
         "🏠 Übersicht",
         "📈 Zählstelle",
-        "🚲 Maßnahmen",
-        "🚨 Unfälle"
+        "🚲 Maßnahmen seit 2021",
+        "🚨 Unfälle 2024"
     ]
 )
 
@@ -383,7 +383,7 @@ with tab_zaehlstelle:
 # ── Tab Maßnahmen ────────────────────────────────────────────────────────────────
 
 with tab_massnahmen:
-    st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
+    st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte seit 2021")
     
     wfs_url = (
         "https://gdi.berlin.de/services/wfs/"
@@ -626,7 +626,6 @@ with tab_massnahmen:
 
         st.caption(
             "Quelle: Geoportal Berlin / Radverkehrsmaßnahmen (seit 2021)"
-            "Lizenz: Datenlizenz Deutschland – Zero – Version 2.0 (dl-zero-de/2.0)"
         )
 
         # ----------------------------------------------------------
@@ -851,7 +850,7 @@ with tab_massnahmen:
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
 with tab_unfaelle:
     st.subheader(
-        "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte"
+        "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte 2024"
     )
 
     # -------------------------------------------------------------------------
