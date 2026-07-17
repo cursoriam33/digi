@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 import folium
 from streamlit_folium import st_folium
 import streamlit.components.v1 as components
+import requests
 
 def show_ecocounter(url):
     components.iframe(url, height=900, scrolling=True)
