@@ -1165,7 +1165,7 @@ with tab_unfaelle:
             "Quelle: Unfallatlas der Statistischen Ämter "
             f"des Bundes und der Länder · "
             f"{len(unfall_features)} Fahrradunfälle "
-            "mit Personenschaden in Berlin-Mitte · Jahr 2025"
+            "mit Personenschaden in Berlin-Mitte · Lizenz: © GeoBasis-DE/BKG 2026 CC BY 4.0"
         )
 
     except requests.exceptions.RequestException as fehler:
@@ -1186,8 +1186,6 @@ with tab_unfaelle:
             "Die Unfalldaten konnten nicht verarbeitet werden: "
             f"{fehler}"
         )
-
-st.caption("Quelle: Statistische Ämter des Bundes und der Länder (2025): Unfallatlas – Unfallorte 2017-2024, bereitgestellt über OpenGeodata NRW, Lizenz: © GeoBasis-DE/BKG 2026 CC BY 4.0")
 
 
 # ── Footer ────────────────────────────────────────────────────────────────────
