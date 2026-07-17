@@ -9,8 +9,7 @@ import streamlit.components.v1 as components
 import json
 import requests
 import xml.etree.ElementTree as ET
-from shapely.geometry import shape
-from shapely.geometry.point import Point
+from shapely.geometry import Point, shape
 
 def show_ecocounter(url):
     components.iframe(url, height=900, scrolling=True)
