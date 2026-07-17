@@ -307,7 +307,42 @@ with tab_massnahmen:
         use_container_width=True,
         key="massnahmen_karte"
     )
+wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
 
+try:
+    response = requests.get(
+        wfs_url,
+        params={
+            "service": "WFS",
+            "version": "2.0.0",
+            "request": "GetFeature",
+            "typeNames": "radverkehrsmassnahmen",
+            "outputFormat": "application/json",
+            "srsName": "EPSG:4326",
+            "count": 5
+        },
+        timeout=30
+    )
+
+    response.raise_for_status()
+    wfs_daten = response.json()
+
+    st.success(
+        f"WFS geladen: {len(wfs_daten.get('features', []))} Testobjekte"
+    )
+
+    if wfs_daten.get("features"):
+        st.write(
+            "Verfügbare Attribute:",
+            list(
+                wfs_daten["features"][0]
+                .get("properties", {})
+                .keys()
+            )
+        )
+
+except Exception as fehler:
+    st.warning(f"WFS konnte nicht geladen werden: {fehler}")
     st.caption(
         "Quelle: Geoportal Berlin / GB infraVelo GmbH"
     )
