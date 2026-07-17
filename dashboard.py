@@ -21,7 +21,7 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .main { background-color: #F7F9FC; }
     .hero {
-        background: linear-gradient(135deg, #156082 0%, #2E7D55 100%);
+        background: linear-gradient(135deg, #0F455D 0%, #156082 100%);
         border-radius: 16px;
         padding: 2.5rem 2rem 2rem 2rem;
         margin-bottom: 1.5rem;
