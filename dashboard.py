@@ -129,7 +129,7 @@ with st.sidebar:
     lat = st.number_input("Breitengrad", value=51.6917, format="%.4f")
     lon = st.number_input("Längengrad",  value=13.2333, format="%.4f")
     st.markdown("---")
-    st.markdown("<small>Dashboard | Master Radverkehr<br>Modul Digitalisierung</small>", unsafe_allow_html=True)
+    st.markdown("<small>Master Radverkehr<br>Modul Digitalisierung</small>", unsafe_allow_html=True)
 
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
