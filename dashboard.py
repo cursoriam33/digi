@@ -159,21 +159,46 @@ ZAEHLSTELLEN = {
 
 MASSNAHMEN = {}
 
-for feature in wfs_daten["features"]:
+try:
+    response = requests.get(
+        "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen",
+        params={
+            "service": "WFS",
+            "version": "2.0.0",
+            "request": "GetFeature",
+            "typeNames": "radverkehrsmassnahmen",
+            "outputFormat": "application/json",
+            "srsName": "EPSG:4326"
+        },
+        timeout=60
+    )
 
-    props = feature["properties"]
+    response.raise_for_status()
+    wfs_daten = response.json()
 
-    # Nur Maßnahmen im Bezirk Mitte
-    if str(props.get("bezirk", "")).lower() != "mitte":
-        continue
+    for feature in wfs_daten.get("features", []):
 
-    name = props.get("strassenname", "Unbekannt")
+        props = feature.get("properties", {})
 
-    # Doppelte Straßennamen vermeiden
-    if name in MASSNAHMEN:
-        name = f"{name} ({props.get('projektnummer')})"
+        # Nur Bezirk Mitte
+        if str(props.get("bezirk", "")).strip().lower() != "mitte":
+            continue
 
-    MASSNAHMEN[name] = feature
+        strasse = props.get("strassenname") or "Unbekannte Straße"
+        projektnummer = props.get("projektnummer") or ""
+
+        # Eindeutiger Name für die Auswahlbox
+        if projektnummer:
+            name = f"{strasse} ({projektnummer})"
+        else:
+            name = strasse
+
+        MASSNAHMEN[name] = feature
+
+except Exception as fehler:
+    st.warning(
+        f"Die Maßnahmen konnten nicht geladen werden: {fehler}"
+    )
     
 
 with st.sidebar:
@@ -197,12 +222,23 @@ with st.sidebar:
     st.markdown("🚧 Radverkehrsmaßnahmen")
     st.markdown("---")
 
-    auswahl = st.selectbox(
-        "Radverkehrsmaßnahmen",
-        list(MASSNAHMEN.keys())
-    )
+    if MASSNAHMEN:
 
-    massnahme = MASSNAHMEN[auswahl]
+        auswahl = st.selectbox(
+            "Radverkehrsmaßnahmen",
+            list(MASSNAHMEN.keys())
+        )
+
+        massnahme = MASSNAHMEN[auswahl]
+        massnahme_props = massnahme["properties"]
+
+    else:
+
+        st.info("Keine Maßnahmen verfügbar.")
+
+        auswahl = None
+        massnahme = None
+        massnahme_props = {}
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
