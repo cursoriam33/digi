@@ -10,7 +10,6 @@ import json
 import requests
 import xml.etree.ElementTree as ET
 
-
 def show_ecocounter(url):
     components.iframe(url, height=900, scrolling=True)
 
@@ -270,14 +269,99 @@ with tab_zaehlstelle:
         height=900,
         scrolling=True
     )
-
-
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
-    wms_url = "https://gdi.berlin.de/services/wms/radverkehrsmassnahmen"
+    wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
 
-    # Karte auf den Bezirk Mitte zentrieren
+    # ------------------------------------------------------------------
+    # Hilfsfunktionen
+    # ------------------------------------------------------------------
+
+    def feld_suchen(eigenschaften, suchbegriffe, standard="–"):
+        """
+        Sucht ein Feld auch dann, wenn der genaue Feldname
+        im WFS leicht anders geschrieben ist.
+        """
+
+        def normalisieren(text):
+            return (
+                str(text)
+                .lower()
+                .replace("ä", "ae")
+                .replace("ö", "oe")
+                .replace("ü", "ue")
+                .replace("ß", "ss")
+                .replace("-", "")
+                .replace("_", "")
+                .replace(" ", "")
+            )
+
+        normalisierte_felder = {
+            normalisieren(key): value
+            for key, value in eigenschaften.items()
+        }
+
+        # Zuerst nach exakten Feldnamen suchen
+        for begriff in suchbegriffe:
+            begriff_normalisiert = normalisieren(begriff)
+
+            if begriff_normalisiert in normalisierte_felder:
+                wert = normalisierte_felder[begriff_normalisiert]
+
+                if wert not in [None, ""]:
+                    return wert
+
+        # Danach nach enthaltenen Begriffen suchen
+        for feldname, wert in normalisierte_felder.items():
+            for begriff in suchbegriffe:
+                if normalisieren(begriff) in feldname:
+                    if wert not in [None, ""]:
+                        return wert
+
+        return standard
+
+
+    def status_farbe(status):
+        status = str(status).lower()
+
+        if any(wort in status for wort in [
+            "fertig",
+            "umgesetzt",
+            "abgeschlossen",
+            "realisiert",
+            "in betrieb"
+        ]):
+            return "#2e7d32"
+
+        if any(wort in status for wort in [
+            "bau",
+            "ausführung",
+            "umsetzung"
+        ]):
+            return "#ef6c00"
+
+        if any(wort in status for wort in [
+            "planung",
+            "geplant",
+            "vorbereitung"
+        ]):
+            return "#1565c0"
+
+        if any(wort in status for wort in [
+            "zurückgestellt",
+            "gestoppt",
+            "abgebrochen"
+        ]):
+            return "#c62828"
+
+        return "#757575"
+
+
+    # ------------------------------------------------------------------
+    # Grundkarte
+    # ------------------------------------------------------------------
+
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
         zoom_start=12,
@@ -285,82 +369,409 @@ with tab_massnahmen:
     )
 
     try:
-        # WMS-Beschreibung laden
-        response = requests.get(
-            wms_url,
+
+        # --------------------------------------------------------------
+        # Layernamen aus den WFS-Capabilities lesen
+        # --------------------------------------------------------------
+
+        capabilities = requests.get(
+            wfs_url,
             params={
-                "service": "WMS",
+                "service": "WFS",
                 "request": "GetCapabilities"
             },
-            timeout=20
+            timeout=30
         )
 
-        response.raise_for_status()
+        capabilities.raise_for_status()
 
-        # XML auswerten
-        root = ET.fromstring(response.content)
+        root = ET.fromstring(capabilities.content)
 
-        # Alle verfügbaren Layernamen suchen
         layer_namen = []
 
-        for element in root.iter():
+        for feature_type in root.iter():
 
-            if element.tag.endswith("Name") and element.text:
-                name = element.text.strip()
+            if feature_type.tag.endswith("FeatureType"):
 
-                # Technische Einträge wie "WMS" überspringen
-                if name and name.upper() not in ["WMS"]:
-                    layer_namen.append(name)
+                for element in feature_type:
 
-        if layer_namen:
+                    if element.tag.endswith("Name") and element.text:
+                        layer_namen.append(element.text.strip())
+                        break
 
-            # Ersten verfügbaren Kartenlayer verwenden
-            wms_layer = layer_namen[0]
+        if not layer_namen:
+            st.warning("Im WFS-Dienst wurde kein Layer gefunden.")
+            st.stop()
 
-            folium.WmsTileLayer(
-                url=wms_url,
-                layers=wms_layer,
+        # Ersten gefundenen Fachlayer verwenden
+        wfs_layer = layer_namen[0]
+
+        # --------------------------------------------------------------
+        # GeoJSON-Daten vom WFS laden
+        # --------------------------------------------------------------
+
+        geojson_response = requests.get(
+            wfs_url,
+            params={
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetFeature",
+                "typeNames": wfs_layer,
+                "outputFormat": "application/json",
+                "srsName": "EPSG:4326"
+            },
+            timeout=60
+        )
+
+        # Fallback für ältere WFS-Versionen
+        if not geojson_response.ok:
+
+            geojson_response = requests.get(
+                wfs_url,
+                params={
+                    "service": "WFS",
+                    "version": "1.1.0",
+                    "request": "GetFeature",
+                    "typeName": wfs_layer,
+                    "outputFormat": "application/json",
+                    "srsName": "EPSG:4326"
+                },
+                timeout=60
+            )
+
+        geojson_response.raise_for_status()
+
+        wfs_daten = geojson_response.json()
+
+        neue_features = []
+
+        # --------------------------------------------------------------
+        # Felder vereinheitlichen
+        # --------------------------------------------------------------
+
+        for feature in wfs_daten.get("features", []):
+
+            eigenschaften = feature.get("properties", {})
+
+            bezirk = feld_suchen(
+                eigenschaften,
+                ["bezirk", "district", "bezirksname"],
+                standard=""
+            )
+
+            # Wenn ein Bezirksfeld vorhanden ist, nur Mitte übernehmen
+            if bezirk and "mitte" not in str(bezirk).lower():
+                continue
+
+            strasse = feld_suchen(
+                eigenschaften,
+                [
+                    "straße",
+                    "strasse",
+                    "straßenzug",
+                    "strassenzug",
+                    "projektname",
+                    "name"
+                ]
+            )
+
+            strassenseite = feld_suchen(
+                eigenschaften,
+                [
+                    "straßenseite",
+                    "strassenseite",
+                    "seite"
+                ]
+            )
+
+            status = feld_suchen(
+                eigenschaften,
+                [
+                    "status",
+                    "projektstatus",
+                    "stand"
+                ]
+            )
+
+            baustart = feld_suchen(
+                eigenschaften,
+                [
+                    "quartal baustart",
+                    "baustart",
+                    "bauanfang",
+                    "startquartal"
+                ]
+            )
+
+            bauende = feld_suchen(
+                eigenschaften,
+                [
+                    "quartal bauende",
+                    "bauende",
+                    "fertigstellung",
+                    "endequartal"
+                ]
+            )
+
+            bauherr = feld_suchen(
+                eigenschaften,
+                [
+                    "bauherr",
+                    "vorhabentraeger",
+                    "vorhabenträger",
+                    "projekttraeger",
+                    "projektträger"
+                ]
+            )
+
+            beschreibung = feld_suchen(
+                eigenschaften,
+                [
+                    "projektbeschreibung",
+                    "beschreibung",
+                    "kurzbeschreibung"
+                ]
+            )
+
+            netz_art = feld_suchen(
+                eigenschaften,
+                [
+                    "netz-art",
+                    "netzart",
+                    "netz",
+                    "radnetz"
+                ]
+            )
+
+            massnahmen_typ = feld_suchen(
+                eigenschaften,
+                [
+                    "maßnahmen-typ",
+                    "massnahmen-typ",
+                    "maßnahmentyp",
+                    "massnahmentyp",
+                    "typ"
+                ]
+            )
+
+            streckenlaenge = feld_suchen(
+                eigenschaften,
+                [
+                    "streckenlänge",
+                    "streckenlaenge",
+                    "länge",
+                    "laenge",
+                    "length"
+                ]
+            )
+
+            neue_features.append({
+                "type": "Feature",
+                "geometry": feature.get("geometry"),
+                "properties": {
+                    "Straße / Straßenzug": strasse,
+                    "Straßenseite": strassenseite,
+                    "Status": status,
+                    "Quartal Baustart": baustart,
+                    "Quartal Bauende": bauende,
+                    "Bauherr": bauherr,
+                    "Projektbeschreibung": beschreibung,
+                    "Netz-Art": netz_art,
+                    "Maßnahmen-Typ": massnahmen_typ,
+                    "Streckenlänge in m": streckenlaenge,
+                    "Farbe": status_farbe(status)
+                }
+            })
+
+        geojson_mitte = {
+            "type": "FeatureCollection",
+            "features": neue_features
+        }
+
+        # --------------------------------------------------------------
+        # Maßnahmen darstellen
+        # --------------------------------------------------------------
+
+        if neue_features:
+
+            folium.GeoJson(
+                geojson_mitte,
                 name="Radverkehrsmaßnahmen",
-                fmt="image/png",
-                transparent=True,
-                version="1.3.0",
-                overlay=True,
-                control=True
+                style_function=lambda feature: {
+                    "color": feature["properties"]["Farbe"],
+                    "weight": 5,
+                    "opacity": 0.9
+                },
+                highlight_function=lambda feature: {
+                    "weight": 8,
+                    "opacity": 1
+                },
+                tooltip=folium.GeoJsonTooltip(
+                    fields=[
+                        "Straße / Straßenzug",
+                        "Status",
+                        "Maßnahmen-Typ"
+                    ],
+                    aliases=[
+                        "Straße:",
+                        "Status:",
+                        "Maßnahme:"
+                    ],
+                    sticky=False
+                ),
+                popup=folium.GeoJsonPopup(
+                    fields=[
+                        "Straße / Straßenzug",
+                        "Straßenseite",
+                        "Status",
+                        "Quartal Baustart",
+                        "Quartal Bauende",
+                        "Bauherr",
+                        "Projektbeschreibung",
+                        "Netz-Art",
+                        "Maßnahmen-Typ",
+                        "Streckenlänge in m"
+                    ],
+                    aliases=[
+                        "Straße bzw. Straßenzug:",
+                        "Straßenseite:",
+                        "Status:",
+                        "Quartal des Baustarts:",
+                        "Quartal des Bauendes:",
+                        "Bauherr:",
+                        "Projektbeschreibung:",
+                        "Netz-Art:",
+                        "Maßnahmen-Typ:",
+                        "Streckenlänge in m:"
+                    ],
+                    localize=True,
+                    labels=True,
+                    max_width=450
+                )
             ).add_to(massnahmen_karte)
-
-            folium.LayerControl(
-                collapsed=False
-            ).add_to(massnahmen_karte)
-
-            st_folium(
-                massnahmen_karte,
-                height=550,
-                use_container_width=True,
-                key="massnahmen_karte"
-            )
-
-            st.caption(
-                f"Quelle: Geoportal Berlin / infraVelo · "
-                f"WMS-Layer: {wms_layer}"
-            )
 
         else:
             st.warning(
-                "Im WMS-Dienst wurde kein darstellbarer Layer gefunden."
+                "Es wurden keine Maßnahmen für den Bezirk Mitte gefunden."
             )
 
-    except requests.exceptions.RequestException as fehler:
+        # --------------------------------------------------------------
+        # Legende
+        # --------------------------------------------------------------
 
+        legende = """
+        <div style="
+            position: fixed;
+            bottom: 35px;
+            left: 35px;
+            z-index: 9999;
+            background-color: white;
+            padding: 12px 15px;
+            border: 2px solid #999;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+        ">
+            <b>Legende – Status</b><br>
+
+            <div style="margin-top:7px;">
+                <span style="
+                    display:inline-block;
+                    width:20px;
+                    height:5px;
+                    background:#2e7d32;
+                    margin-right:7px;
+                "></span>
+                Fertig / umgesetzt
+            </div>
+
+            <div style="margin-top:5px;">
+                <span style="
+                    display:inline-block;
+                    width:20px;
+                    height:5px;
+                    background:#ef6c00;
+                    margin-right:7px;
+                "></span>
+                Im Bau
+            </div>
+
+            <div style="margin-top:5px;">
+                <span style="
+                    display:inline-block;
+                    width:20px;
+                    height:5px;
+                    background:#1565c0;
+                    margin-right:7px;
+                "></span>
+                In Planung
+            </div>
+
+            <div style="margin-top:5px;">
+                <span style="
+                    display:inline-block;
+                    width:20px;
+                    height:5px;
+                    background:#c62828;
+                    margin-right:7px;
+                "></span>
+                Zurückgestellt
+            </div>
+
+            <div style="margin-top:5px;">
+                <span style="
+                    display:inline-block;
+                    width:20px;
+                    height:5px;
+                    background:#757575;
+                    margin-right:7px;
+                "></span>
+                Sonstiger Status
+            </div>
+        </div>
+        """
+
+        massnahmen_karte.get_root().html.add_child(
+            folium.Element(legende)
+        )
+
+        folium.LayerControl(
+            collapsed=False
+        ).add_to(massnahmen_karte)
+
+        st_folium(
+            massnahmen_karte,
+            height=600,
+            use_container_width=True,
+            key="massnahmen_karte"
+        )
+
+        st.caption(
+            f"Quelle: Geoportal Berlin · "
+            f"{len(neue_features)} Maßnahmen in der Karte"
+        )
+
+    except requests.exceptions.RequestException as fehler:
         st.error(
-            f"Der WMS-Dienst konnte nicht geladen werden: {fehler}"
+            f"Der WFS-Dienst konnte nicht geladen werden: {fehler}"
         )
 
     except ET.ParseError as fehler:
-
         st.error(
-            f"Die WMS-Beschreibung konnte nicht gelesen werden: {fehler}"
+            f"Die Beschreibung des WFS-Dienstes konnte nicht gelesen werden: "
+            f"{fehler}"
         )
 
+    except (ValueError, json.JSONDecodeError) as fehler:
+        st.error(
+            f"Die WFS-Daten konnten nicht verarbeitet werden: {fehler}"
+        )
+
+    except Exception as fehler:
+        st.error(
+            f"Beim Erstellen der Maßnahmenkarte ist ein Fehler aufgetreten: "
+            f"{fehler}"
+        )
 
 with tab_unfaelle:
     st.info("Unfalldaten werden hier integriert.")
