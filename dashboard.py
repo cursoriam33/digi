@@ -596,6 +596,6 @@ with tab_unfaelle:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<small style='color:#9CA3AF'>Datenquelle: Senatsverwaltung für Mobilität, Verkehr, Klimaschutz und Umwelt / Radfahrzählstellen; GB infraVelo GmbH / Radverkehrsmaßnahmen; Statistische Ämter des Bundes und der Länder / Unfallatlas – Unfallorte 2017-2024 </small>",
+    "<small style='color:#9CA3AF'>Labor-Hausaufgabe im Rahmen der Lehrveranstaltung: Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang Radverkehr in intermodalen Verkehrsnetzen - Sommersemester 2026 </small>",
     unsafe_allow_html=True
 )
