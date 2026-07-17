@@ -5,6 +5,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import folium
 from streamlit_folium import st_folium
+import streamlit.components.v1 as components
+
+def show_ecocounter(url):
+    components.iframe(url, height=900, scrolling=True)
 
 # ── Seitenkonfiguration ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -180,7 +184,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── URLs ──────────────────────────────────────────────────────────────────────
 # ── URLs ──────────────────────────────────────────────────────────────────────
 
 viz_url = (
