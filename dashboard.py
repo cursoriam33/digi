@@ -117,7 +117,7 @@ def kpi_card(label, value, sub=""):
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🚲 Radverkehr\n### Berlin-Mitte")
+    st.markdown("## Radverkehr in Berlin-Mitte")
     st.markdown("---")
     uploaded_file = st.file_uploader(
         "Eco-Visio CSV hochladen",
