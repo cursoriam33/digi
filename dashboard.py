@@ -203,11 +203,11 @@ except Exception as fehler:
 
 with st.sidebar:
 
-    st.markdown("## 📈 Radverkehr in Berlin-Mitte")
-    st.markdown("---")
+    st.markdown("## Radverkehr in Berlin-Mitte")
+    st.markdown("📈 Radverkehrszählstelle")
 
     auswahl = st.selectbox(
-        "Radverkehrszählstelle",
+        "Standort",
         list(ZAEHLSTELLEN.keys())
     )
 
@@ -220,12 +220,11 @@ with st.sidebar:
     lon = counter["lon"]
 
     st.markdown("🚧 Radverkehrsmaßnahmen")
-    st.markdown("---")
 
     if MASSNAHMEN:
 
         auswahl = st.selectbox(
-            "Radverkehrsmaßnahmen",
+            "Straße bzw. Straßenzug",
             list(MASSNAHMEN.keys())
         )
 
