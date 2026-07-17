@@ -373,6 +373,12 @@ with tab_massnahmen:
         "radverkehrsmassnahmen"
     )
 
+    components.iframe(
+        src=counter_url,
+        height=900,
+        scrolling=True
+    )
+
     # --------------------------------------------------------------
     # Ausgangswert aus der Sidebar
     # --------------------------------------------------------------
