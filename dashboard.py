@@ -157,9 +157,28 @@ ZAEHLSTELLEN = {
     },
 }
 
+MASSNAHMEN = {}
+
+for feature in wfs_daten["features"]:
+
+    props = feature["properties"]
+
+    # Nur Maßnahmen im Bezirk Mitte
+    if str(props.get("bezirk", "")).lower() != "mitte":
+        continue
+
+    name = props.get("strassenname", "Unbekannt")
+
+    # Doppelte Straßennamen vermeiden
+    if name in MASSNAHMEN:
+        name = f"{name} ({props.get('projektnummer')})"
+
+    MASSNAHMEN[name] = feature
+    
+
 with st.sidebar:
 
-    st.markdown("## Radverkehr in Berlin-Mitte")
+    st.markdown("## 📈 Radverkehr in Berlin-Mitte")
     st.markdown("---")
 
     auswahl = st.selectbox(
@@ -175,48 +194,15 @@ with st.sidebar:
     lat = counter["lat"]
     lon = counter["lon"]
 
-    st.markdown("🚧 Radverkehrsmaßnahmen")
+     st.markdown("🚧 Radverkehrsmaßnahmen")
+    st.markdown("---")
 
-massnahmen_ids = [
-    feature["properties"]["_auswahl_id"]
-    for feature in massnahmen_mitte
-]
-
-massnahmen_labels = {
-    feature["properties"]["_auswahl_id"]:
-    feature["properties"]["_auswahl_label"]
-    for feature in massnahmen_mitte
-}
-
-# Eine Auswahl aus einem Kartenklick wird vor dem Aufbau
-# der Selectbox übernommen.
-if "naechste_massnahme_id" in st.session_state:
-
-    st.session_state["massnahmen_auswahl"] = (
-        st.session_state.pop("naechste_massnahme_id")
+    auswahl = st.selectbox(
+        "Radverkehrsmaßnahmen",
+        list(MASSNAHMEN.keys())
     )
 
-if "massnahmen_auswahl" not in st.session_state:
-    st.session_state["massnahmen_auswahl"] = None
-
-ausgewaehlte_massnahme_id = st.sidebar.selectbox(
-    "Maßnahme auswählen",
-    options=[None] + massnahmen_ids,
-    format_func=lambda massnahme_id: (
-        "Keine Maßnahme ausgewählt"
-        if massnahme_id is None
-        else massnahmen_labels.get(
-            massnahme_id,
-            massnahme_id
-        )
-    ),
-    key="massnahmen_auswahl"
-)
-
-ausgewaehlte_massnahme = finde_massnahme(
-    massnahmen_mitte,
-    ausgewaehlte_massnahme_id
-)
+    massnahme = MASSNAHMEN[auswahl]
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
