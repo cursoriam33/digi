@@ -298,16 +298,6 @@ with tab_massnahmen:
             f"Der Maßnahmen-Layer konnte nicht hinzugefügt werden: {fehler}"
         )
 
-    folium.LayerControl(
-        collapsed=False
-    ).add_to(massnahmen_karte)
-
-    st_folium(
-        massnahmen_karte,
-        height=600,
-        use_container_width=True,
-        key="massnahmen_karte"
-    )
 wfs_url = "https://gdi.berlin.de/services/wfs/radverkehrsmassnahmen"
 
 try:
@@ -409,6 +399,16 @@ try:
 except Exception as fehler:
     st.warning(
         f"Die anklickbaren Maßnahmen konnten nicht geladen werden: {fehler}"
+    )
+folium.LayerControl(
+        collapsed=False
+    ).add_to(massnahmen_karte)
+
+    st_folium(
+        massnahmen_karte,
+        height=600,
+        use_container_width=True,
+        key="massnahmen_karte"
     )
     st.caption(
         "Quelle: Geoportal Berlin / GB infraVelo GmbH"
