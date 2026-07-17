@@ -870,7 +870,64 @@ with tab_unfaelle:
 
     try:
         # --------------------------------------------------------------
-        # 1. Bezirksgrenzen laden
+        # 1. Internen Layernamen des Bezirke-WFS ermitteln
+        # --------------------------------------------------------------
+
+        capabilities_response = requests.get(
+            bezirke_wfs_url,
+            params={
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetCapabilities"
+            },
+            timeout=60
+        )
+
+        capabilities_response.raise_for_status()
+
+        xml_root = ET.fromstring(
+            capabilities_response.content
+        )
+
+        namespaces = {
+            "wfs": "http://www.opengis.net/wfs/2.0"
+        }
+
+        feature_type_namen = []
+
+        for name_element in xml_root.findall(
+            ".//wfs:FeatureType/wfs:Name",
+            namespaces
+        ):
+            if name_element.text:
+                feature_type_namen.append(
+                    name_element.text.strip()
+                )
+
+        if not feature_type_namen:
+            st.error(
+                "Im Bezirke-WFS wurde kein Feature-Type gefunden."
+            )
+            st.stop()
+
+        # Normalerweise enthält dieser Dienst nur den Bezirke-Layer.
+        # Falls mehrere vorhanden sind, wird nach 'bezirk' gesucht.
+        bezirke_layername = next(
+            (
+                name
+                for name in feature_type_namen
+                if "bezirk" in name.lower()
+            ),
+            feature_type_namen[0]
+        )
+
+        # Zum Testen vorübergehend sichtbar:
+        st.caption(
+            f"Verwendeter Bezirks-Layer: {bezirke_layername}"
+        )
+
+        # --------------------------------------------------------------
+        # 2. Bezirksgeometrien laden
         # --------------------------------------------------------------
 
         bezirke_response = requests.get(
@@ -879,38 +936,75 @@ with tab_unfaelle:
                 "service": "WFS",
                 "version": "2.0.0",
                 "request": "GetFeature",
-                "typeNames": "alkis_bezirke",
+                "typeNames": bezirke_layername,
                 "outputFormat": "application/json",
                 "srsName": "EPSG:4326"
             },
             timeout=60
         )
 
-        bezirke_response.raise_for_status()
+        # Bei Fehlern die Antwort des WFS sichtbar machen
+        if not bezirke_response.ok:
+            st.error(
+                "Der Bezirke-WFS meldet einen Fehler:"
+            )
+
+            st.code(
+                bezirke_response.text[:3000]
+            )
+
+            st.stop()
+
         bezirke_daten = bezirke_response.json()
+
+        # --------------------------------------------------------------
+        # Bezirk Mitte suchen
+        # --------------------------------------------------------------
 
         mitte_feature = None
 
         for feature in bezirke_daten.get("features", []):
-            eigenschaften = feature.get("properties", {})
+            eigenschaften = feature.get(
+                "properties",
+                {}
+            )
 
-            # Robust alle Attributwerte durchsuchen,
-            # da die konkrete Namensspalte variieren kann.
             attribut_text = " ".join(
                 str(wert)
                 for wert in eigenschaften.values()
                 if wert is not None
-            ).lower()
+            ).strip().lower()
 
-            if "mitte" in attribut_text:
+            # Exakte oder enthaltene Bezeichnung „Mitte“
+            if (
+                attribut_text == "mitte"
+                or " mitte " in f" {attribut_text} "
+            ):
                 mitte_feature = feature
                 break
 
         if mitte_feature is None:
             st.error(
-                "Die Bezirksgrenze von Berlin-Mitte "
-                "konnte nicht gefunden werden."
+                "Die Bezirksgeometrie von Mitte wurde "
+                "im WFS nicht gefunden."
             )
+
+            # Hilfreiche Diagnose der vorhandenen Attribute
+            beispiele = []
+
+            for feature in bezirke_daten.get(
+                "features",
+                []
+            )[:12]:
+                beispiele.append(
+                    feature.get("properties", {})
+                )
+
+            st.write(
+                "Geladene Bezirksattribute:",
+                beispiele
+            )
+
             st.stop()
 
         mitte_geometrie = shape(
