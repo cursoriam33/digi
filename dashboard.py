@@ -178,7 +178,6 @@ st.markdown(f"""
     <h1>🚲 Radverkehr im Bezirk Mitte</h1>
     <p>Zählstelle · Radverkehrsmaßnahmen · Unfalldaten</p>
         <b>Zählstelle:</b> {zaehler_name}<br>
-        EcoCounter-ID: {counter_id}
     </p>
 </div>
 """, unsafe_allow_html=True)
