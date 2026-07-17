@@ -453,7 +453,7 @@ with tab_massnahmen:
 
     massnahmen_karte = folium.Map(
         location=[52.5326, 13.3660],
-        zoom_start=14,
+        zoom_start=13,
         tiles="CartoDB positron"
     )
 
@@ -880,7 +880,7 @@ with tab_unfaelle:
     # -------------------------------------------------------------------------
 
     unfall_karte = folium.Map(
-        location=[52.5205, 13.4050],
+        location=[52.5326, 13.3660],
         zoom_start=13,
         tiles="CartoDB positron",
         control_scale=True
