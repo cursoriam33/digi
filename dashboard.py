@@ -1052,6 +1052,27 @@ with tab_unfaelle:
             "gray"
         )
 
+    def unfalltyp_text(utyp):
+        try:
+            utyp = int(float(utyp))
+        except (TypeError, ValueError):
+            return "Unbekannt"
+    
+        unfalltypen = {
+            1: "Fahrunfall",
+            2: "Abbiege-Unfall",
+            3: "Einbiegen / Kreuzen-Unfall",
+            4: "Überschreiten-Unfall",
+            5: "Unfall durch ruhenden Verkehr",
+            6: "Unfall im Längsverkehr",
+            7: "Sonstiger Unfall"
+        }
+    
+        return unfalltypen.get(
+            utyp,
+            "Unbekannt"
+        )
+
     def monat_text(monat):
         monate = {
             1: "Januar",
@@ -1167,6 +1188,7 @@ with tab_unfaelle:
                     "UWOCHENTAG,"
                     "USTUNDE,"
                     "UKATEGORIE,"
+                    "UTYP1,"
                     "IstRadInt,"
                     "ULAND"
                 ),
@@ -1354,6 +1376,10 @@ with tab_unfaelle:
                 kategorie
             )
 
+            unfalltyp = unfalltyp_text(
+            daten.get("UTYP1")
+            )
+
             popup_html = f"""
             <div style="
                 width:275px;
@@ -1371,24 +1397,16 @@ with tab_unfaelle:
                 <b>Unfallkategorie:</b><br>
                 {kategorie}
                 <br><br>
+                
+                <b>Unfalltyp:</b><br>
+                {unfalltyp}
 
                 <b>Jahr:</b>
                 {jahr_text(daten.get("UJAHR"))}<br>
 
-                <b>Monat:</b>
-                {monat_text(daten.get("UMONAT"))}<br>
-
-                <b>Wochentag:</b>
-                {wochentag_text(daten.get("UWOCHENTAG"))}<br>
-
                 <b>Uhrzeit:</b>
                 {uhrzeit_text(daten.get("USTUNDE"))}<br><br>
-
-                <b>Bezirk:</b>
-                Berlin-Mitte<br>
-
-                <b>Fahrradbeteiligung:</b>
-                Ja
+                
             </div>
             """
 
