@@ -269,6 +269,7 @@ with tab_zaehlstelle:
         height=900,
         scrolling=True
     )
+
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
@@ -318,8 +319,7 @@ try:
             "request": "GetFeature",
             "typeNames": "radverkehrsmassnahmen",
             "outputFormat": "application/json",
-            "srsName": "EPSG:4326",
-            "count": 5
+            "srsName": "EPSG:4326"
         },
         timeout=30
     )
@@ -327,22 +327,89 @@ try:
     response.raise_for_status()
     wfs_daten = response.json()
 
-    st.success(
-        f"WFS geladen: {len(wfs_daten.get('features', []))} Testobjekte"
-    )
+    # Nur Maßnahmen im Bezirk Mitte
+    features_mitte = []
 
-    if wfs_daten.get("features"):
-        st.write(
-            "Verfügbare Attribute:",
-            list(
-                wfs_daten["features"][0]
-                .get("properties", {})
-                .keys()
+    for feature in wfs_daten.get("features", []):
+
+        properties = feature.get("properties", {})
+
+        if str(properties.get("bezirk", "")).lower() == "mitte":
+            features_mitte.append(feature)
+
+    geojson_mitte = {
+        "type": "FeatureCollection",
+        "features": features_mitte
+    }
+
+    if features_mitte:
+
+        folium.GeoJson(
+            geojson_mitte,
+            name="Maßnahmen anklickbar",
+            style_function=lambda feature: {
+                "color": "#1565c0",
+                "weight": 6,
+                "opacity": 0.01
+            },
+            highlight_function=lambda feature: {
+                "color": "#ff9800",
+                "weight": 8,
+                "opacity": 0.9
+            },
+            tooltip=folium.GeoJsonTooltip(
+                fields=[
+                    "strassenname",
+                    "status",
+                    "massnahmen_typ1"
+                ],
+                aliases=[
+                    "Straße:",
+                    "Status:",
+                    "Maßnahme:"
+                ],
+                sticky=False
+            ),
+            popup=folium.GeoJsonPopup(
+                fields=[
+                    "projektnummer",
+                    "strassenname",
+                    "strassenseite",
+                    "status",
+                    "baustart",
+                    "bauende",
+                    "bauherr",
+                    "projektbeschreibung_lang",
+                    "netz_art1",
+                    "massnahmen_typ1",
+                    "streckenlaenge1"
+                ],
+                aliases=[
+                    "Projektnummer:",
+                    "Straße bzw. Straßenzug:",
+                    "Straßenseite:",
+                    "Status der Maßnahme:",
+                    "Quartal des Baustarts:",
+                    "Quartal des Bauendes:",
+                    "Bauherr:",
+                    "Projektbeschreibung:",
+                    "Netz-Art:",
+                    "Maßnahmen-Typ:",
+                    "Streckenlänge in m:"
+                ],
+                labels=True,
+                localize=True,
+                max_width=500
             )
-        )
+        ).add_to(massnahmen_karte)
+
+    else:
+        st.warning("Keine WFS-Maßnahmen für den Bezirk Mitte gefunden.")
 
 except Exception as fehler:
-    st.warning(f"WFS konnte nicht geladen werden: {fehler}")
+    st.warning(
+        f"Die anklickbaren Maßnahmen konnten nicht geladen werden: {fehler}"
+    )
     st.caption(
         "Quelle: Geoportal Berlin / GB infraVelo GmbH"
     )
