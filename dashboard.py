@@ -122,8 +122,8 @@ def kpi_card(label, value, sub=""):
 
 ZAEHLSTELLEN = {
     "Nordufer": {
-        "id": 30003779,
-        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/30003779",
+        "id": 300037797,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/300037797",
         "lat": 52.53179,
         "lon": 13.35147,
     },
