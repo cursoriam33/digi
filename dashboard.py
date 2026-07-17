@@ -176,7 +176,7 @@ with st.sidebar:
 st.markdown(f"""
 <div class="hero">
     <h1>🚲 Radverkehr im Bezirk Mitte</h1>
-    <p>Zählstelle · Radverkehrsmaßnahmen · Unfalldaten</p>
+    <p>Zähldaten · Radverkehrsmaßnahmen · Unfalldaten</p>
 </div>
 """, unsafe_allow_html=True)
 
