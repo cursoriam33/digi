@@ -217,7 +217,6 @@ ausgewaehlte_massnahme = finde_massnahme(
     massnahmen_mitte,
     ausgewaehlte_massnahme_id
 )
-    st.markdown("---")
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
