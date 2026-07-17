@@ -264,8 +264,8 @@ with tab_start:
 
     # Karte auf Berlin-Mitte zentrieren
     karte = folium.Map(
-        location=[52.5205, 13.4050],
-        zoom_start=13,
+        location=[52.5326, 13.3660],
+        zoom_start=14,
         tiles="CartoDB positron"
     )
 
@@ -452,8 +452,8 @@ with tab_massnahmen:
     # --------------------------------------------------------------
 
     massnahmen_karte = folium.Map(
-        location=[52.5205, 13.4050],
-        zoom_start=16,
+        location=[52.5326, 13.3660],
+        zoom_start=14,
         tiles="CartoDB positron"
     )
 
