@@ -365,15 +365,20 @@ with tab_start:
 
 # ── Tab Zählstellen ────────────────────────────────────────────────────────────────
 
-with tab_massnahmen:
-    st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
-
+with tab_zaehlstelle: 
+    st.subheader(zaehler_name)
+ 
     components.iframe(
         src=counter_url,
         height=900,
         scrolling=True
     )
     
+# ── Tab Maßnahmen ────────────────────────────────────────────────────────────────
+
+with tab_massnahmen:
+    st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
+      
     # --------------------------------------------------------------
     # Ausgangswert aus der Sidebar
     # --------------------------------------------------------------
