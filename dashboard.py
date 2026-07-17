@@ -6,7 +6,9 @@ from plotly.subplots import make_subplots
 import folium
 from streamlit_folium import st_folium
 import streamlit.components.v1 as components
+import json
 import requests
+
 
 def show_ecocounter(url):
     components.iframe(url, height=900, scrolling=True)
@@ -274,31 +276,89 @@ with tab_massnahmen:
 
     api_url = "https://www.infravelo.de/api/v1/projects/district/mitte/"
 
+    massnahmen_karte = folium.Map(
+        location=[52.5205, 13.4050],
+        zoom_start=12,
+        tiles="CartoDB positron"
+    )
+
     try:
-        response = requests.get(api_url, timeout=15)
+        response = requests.get(api_url, timeout=20)
         response.raise_for_status()
 
-        geojson_daten = response.json()
+        api_daten = response.json()
 
-        massnahmen_karte = folium.Map(
-            location=[52.5205, 13.4050],
-            zoom_start=12,
-            tiles="CartoDB positron"
-        )
+        # Die infraVelo-API liefert Projekte unter "results"
+        projekte = api_daten.get("results", [])
 
-        folium.GeoJson(
-            geojson_daten,
-            name="Radverkehrsmaßnahmen",
-            style_function=lambda feature: {
-                "color": "#156082",
-                "weight": 4,
-                "opacity": 0.9,
-                "fillColor": "#156082",
-                "fillOpacity": 0.4
+        features = []
+
+        for projekt in projekte:
+
+            # Geometrie suchen
+            geometrie = (
+                projekt.get("geometry")
+                or projekt.get("geom")
+                or projekt.get("geojson")
+            )
+
+            # GeoJSON kann teilweise als String geliefert werden
+            if isinstance(geometrie, str):
+                try:
+                    geometrie = json.loads(geometrie)
+                except json.JSONDecodeError:
+                    geometrie = None
+
+            if not isinstance(geometrie, dict):
+                continue
+
+            feature = {
+                "type": "Feature",
+                "geometry": geometrie,
+                "properties": {
+                    "name": (
+                        projekt.get("title")
+                        or projekt.get("name")
+                        or "Radverkehrsmaßnahme"
+                    ),
+                    "status": projekt.get("status", "Keine Angabe"),
+                    "id": projekt.get("id", "")
+                }
             }
-        ).add_to(massnahmen_karte)
 
-        folium.LayerControl().add_to(massnahmen_karte)
+            features.append(feature)
+
+        geojson_daten = {
+            "type": "FeatureCollection",
+            "features": features
+        }
+
+        if features:
+
+            folium.GeoJson(
+                geojson_daten,
+                name="Radverkehrsmaßnahmen",
+                style_function=lambda feature: {
+                    "color": "#156082",
+                    "weight": 4,
+                    "opacity": 0.9,
+                    "fillColor": "#156082",
+                    "fillOpacity": 0.35
+                },
+                tooltip=folium.GeoJsonTooltip(
+                    fields=["name", "status"],
+                    aliases=["Maßnahme:", "Status:"],
+                    localize=True
+                )
+            ).add_to(massnahmen_karte)
+
+            folium.LayerControl().add_to(massnahmen_karte)
+
+        else:
+            st.warning(
+                "Die API liefert Projekte, aber keine direkt "
+                "verwendbaren Geometrien."
+            )
 
         st_folium(
             massnahmen_karte,
@@ -308,18 +368,15 @@ with tab_massnahmen:
         )
 
         st.caption(
-            "Quelle: infraVelo – Radverkehrsprojekte im Bezirk Mitte"
+            f"Quelle: infraVelo – {len(projekte)} Projekte geladen, "
+            f"{len(features)} davon mit Geometrie."
         )
 
     except requests.exceptions.RequestException as fehler:
-        st.error(
-            f"Die Maßnahmen konnten nicht geladen werden: {fehler}"
-        )
+        st.error(f"Fehler beim Abrufen der infraVelo-API: {fehler}")
 
-    except ValueError:
-        st.error(
-            "Die API hat keine gültigen GeoJSON-Daten zurückgegeben."
-        )
+    except ValueError as fehler:
+        st.error(f"Die API liefert kein gültiges JSON: {fehler}")
 
 
 with tab_unfaelle:
