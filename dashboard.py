@@ -850,7 +850,7 @@ with tab_massnahmen:
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
 with tab_unfaelle:
     st.subheader(
-        "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte 2024"
+        "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte im Jahr 2024"
     )
 
     # -------------------------------------------------------------------------
