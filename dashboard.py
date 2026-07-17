@@ -834,32 +834,24 @@ with tab_massnahmen:
 st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
-
 with tab_unfaelle:
     st.subheader(
         "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte"
     )
 
-    # --------------------------------------------------------------
-    # Einstellungen
-    # --------------------------------------------------------------
-
     unfall_service_url = (
-        "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Germany_Traffic_Accidents_2025/FeatureServer/0/query"
+        "https://services.arcgis.com/"
+        "P3ePLMYs2RVChkJx/ArcGIS/rest/services/"
+        "Germany_Traffic_Accidents_2025/"
+        "FeatureServer/0/query"
     )
 
-    # Berlin = Bundesland 11
-    # Mitte = Gemeinde-/Bezirkscode 001
-    # Fahrradbeteiligung = IstRadInt 1
     unfall_filter = (
         "ULAND = '11' "
+        "AND UKREIS = '0' "
         "AND UGEMEINDE = '01' "
         "AND IstRadInt = 1"
     )
-
-    # --------------------------------------------------------------
-    # Unfallkarte
-    # --------------------------------------------------------------
 
     unfall_karte = folium.Map(
         location=[52.5205, 13.4050],
@@ -872,14 +864,10 @@ with tab_unfaelle:
             unfall_service_url,
             params={
                 "where": unfall_filter,
-                "outFields": (
-                    "UIIDENTSTLA,ULAND,UKREIS,UGEMEINDE,"
-                    "UJAHR,UMONAT,UWOCHENTAG,USTUNDE,"
-                    "UKATEGORIE,UART,UTYP1,ULICHTVERH,"
-                    "IstRadInt"
-                ),
+                "outFields": "*",
                 "returnGeometry": "true",
                 "outSR": "4326",
+                "resultRecordCount": 2000,
                 "f": "geojson"
             },
             timeout=60
@@ -888,95 +876,26 @@ with tab_unfaelle:
         response.raise_for_status()
         unfall_daten = response.json()
 
+        if "error" in unfall_daten:
+            st.error(
+                "Fehler des Unfall-Datendienstes: "
+                f"{unfall_daten['error']}"
+            )
+            st.stop()
+
         unfall_features = unfall_daten.get(
             "features",
             []
         )
 
-        # ----------------------------------------------------------
-        # Hilfsfunktionen
-        # ----------------------------------------------------------
-
-        def unfallkategorie_text(wert):
-            kategorien = {
-                "1": "Unfall mit Getöteten",
-                "2": "Unfall mit Schwerverletzten",
-                "3": "Unfall mit Leichtverletzten"
-            }
-
-            return kategorien.get(
-                str(wert),
-                "Unfall mit Personenschaden"
-            )
-
-        def unfallfarbe(wert):
-            farben = {
-                "1": "darkred",
-                "2": "orange",
-                "3": "blue"
-            }
-
-            return farben.get(
-                str(wert),
-                "gray"
-            )
-
-        def monat_text(wert):
-            monate = {
-                "1": "Januar",
-                "2": "Februar",
-                "3": "März",
-                "4": "April",
-                "5": "Mai",
-                "6": "Juni",
-                "7": "Juli",
-                "8": "August",
-                "9": "September",
-                "10": "Oktober",
-                "11": "November",
-                "12": "Dezember"
-            }
-
-            try:
-                nummer = str(int(wert))
-            except (TypeError, ValueError):
-                nummer = str(wert)
-
-            return monate.get(
-                nummer,
-                "–"
-            )
-
-        def wochentag_text(wert):
-            wochentage = {
-                "1": "Sonntag",
-                "2": "Montag",
-                "3": "Dienstag",
-                "4": "Mittwoch",
-                "5": "Donnerstag",
-                "6": "Freitag",
-                "7": "Samstag"
-            }
-
-            return wochentage.get(
-                str(wert),
-                "–"
-            )
-
-        # ----------------------------------------------------------
-        # Unfallpunkte darstellen
-        # ----------------------------------------------------------
+        st.caption(
+            f"{len(unfall_features)} Fahrradunfälle "
+            "in Berlin-Mitte gefunden"
+        )
 
         for feature in unfall_features:
-            geometrie = feature.get(
-                "geometry",
-                {}
-            )
-
-            koordinaten = geometrie.get(
-                "coordinates",
-                []
-            )
+            geometrie = feature.get("geometry", {})
+            koordinaten = geometrie.get("coordinates", [])
 
             if len(koordinaten) < 2:
                 continue
@@ -984,172 +903,79 @@ with tab_unfaelle:
             longitude = koordinaten[0]
             latitude = koordinaten[1]
 
-            daten = feature.get(
-                "properties",
-                {}
-            )
+            daten = feature.get("properties", {})
 
             kategorie = str(
-                daten.get(
-                    "UKATEGORIE",
-                    ""
-                )
+                daten.get("UKATEGORIE", "")
             )
 
-            jahr = (
-                daten.get("UJAHR")
-                or "2025"
+            farben = {
+                "1": "darkred",
+                "2": "orange",
+                "3": "blue"
+            }
+
+            bezeichnungen = {
+                "1": "Unfall mit Getöteten",
+                "2": "Unfall mit Schwerverletzten",
+                "3": "Unfall mit Leichtverletzten"
+            }
+
+            farbe = farben.get(
+                kategorie,
+                "gray"
             )
 
-            monat = monat_text(
-                daten.get("UMONAT")
-            )
-
-            wochentag = wochentag_text(
-                daten.get("UWOCHENTAG")
-            )
-
-            stunde = daten.get(
-                "USTUNDE"
-            )
-
-            if stunde in (None, ""):
-                uhrzeit = "–"
-            else:
-                try:
-                    uhrzeit = (
-                        f"{int(stunde):02d}:00 Uhr"
-                    )
-                except (TypeError, ValueError):
-                    uhrzeit = str(stunde)
-
-            kategorie_bezeichnung = (
-                unfallkategorie_text(
-                    kategorie
-                )
+            bezeichnung = bezeichnungen.get(
+                kategorie,
+                "Unfall mit Personenschaden"
             )
 
             popup_html = f"""
             <div style="
-                width:260px;
+                width:250px;
                 font-family:Arial, sans-serif;
             ">
-                <h4 style="
-                    margin-bottom:10px;
-                    color:#b71c1c;
-                ">
+                <h4 style="color:#b71c1c;">
                     🚨 Fahrradunfall
                 </h4>
 
-                <b>Unfallkategorie:</b><br>
-                {kategorie_bezeichnung}
-                <br><br>
+                <b>Kategorie:</b><br>
+                {bezeichnung}<br><br>
 
                 <b>Jahr:</b>
-                {jahr}<br>
+                {daten.get("UJAHR") or "–"}<br>
 
                 <b>Monat:</b>
-                {monat}<br>
+                {daten.get("UMONAT") or "–"}<br>
 
                 <b>Wochentag:</b>
-                {wochentag}<br>
+                {daten.get("UWOCHENTAG") or "–"}<br>
 
-                <b>Uhrzeit:</b>
-                {uhrzeit}<br><br>
+                <b>Stunde:</b>
+                {daten.get("USTUNDE") or "–"}<br><br>
 
-                <b>Bezirk:</b>
-                Berlin-Mitte<br>
-
-                <b>Fahrradbeteiligung:</b>
-                Ja
+                <b>Gebietscode:</b>
+                {daten.get("ULAND")}/
+                {daten.get("UKREIS")}/
+                {daten.get("UGEMEINDE")}
             </div>
             """
 
             folium.CircleMarker(
-                location=[
-                    latitude,
-                    longitude
-                ],
+                location=[latitude, longitude],
                 radius=7,
-                color=unfallfarbe(
-                    kategorie
-                ),
+                color=farbe,
                 weight=2,
                 fill=True,
-                fill_color=unfallfarbe(
-                    kategorie
-                ),
+                fill_color=farbe,
                 fill_opacity=0.8,
                 popup=folium.Popup(
                     popup_html,
                     max_width=300
                 ),
-                tooltip=(
-                    f"Fahrradunfall: "
-                    f"{kategorie_bezeichnung}"
-                )
+                tooltip=bezeichnung
             ).add_to(unfall_karte)
-
-        # ----------------------------------------------------------
-        # Legende
-        # ----------------------------------------------------------
-
-        unfall_legende = """
-        <div style="
-            position:fixed;
-            bottom:35px;
-            left:35px;
-            z-index:9999;
-            background:white;
-            padding:12px 15px;
-            border:2px solid #777;
-            border-radius:6px;
-            font-size:13px;
-            box-shadow:0 1px 5px rgba(0,0,0,0.35);
-        ">
-            <b>Unfallkategorie</b><br><br>
-
-            <span style="
-                display:inline-block;
-                width:12px;
-                height:12px;
-                border-radius:50%;
-                background:darkred;
-                margin-right:8px;
-            "></span>
-            Unfall mit Getöteten<br><br>
-
-            <span style="
-                display:inline-block;
-                width:12px;
-                height:12px;
-                border-radius:50%;
-                background:orange;
-                margin-right:8px;
-            "></span>
-            Unfall mit Schwerverletzten<br><br>
-
-            <span style="
-                display:inline-block;
-                width:12px;
-                height:12px;
-                border-radius:50%;
-                background:blue;
-                margin-right:8px;
-            "></span>
-            Unfall mit Leichtverletzten
-        </div>
-        """
-
-        unfall_karte.get_root().html.add_child(
-            folium.Element(
-                unfall_legende
-            )
-        )
-
-        # ----------------------------------------------------------
-        # Karte ausgeben
-        # ----------------------------------------------------------
 
         st_folium(
             unfall_karte,
