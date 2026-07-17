@@ -178,7 +178,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("Radverkehr in Berlin-Mitte")
     st.markdown("---")
-    st.markdown("<small style='color:#E8E9EC'>Labor-Hausaufgabe<br>im Rahmen der Lehrveranstaltung<br>Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang<br>Radverkehr in intermodalen Verkehrsnetzen<br>Sommersemester 2026</small>", unsafe_allow_html=True)
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -596,6 +595,6 @@ with tab_unfaelle:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<small style='color:#9CA3AF'>Labor-Hausaufgabe im Rahmen der Lehrveranstaltung: Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang Radverkehr in intermodalen Verkehrsnetzen - Sommersemester 2026 </small>",
+    "<small style='color:#9CA3AF'>'Labor-Hausaufgabe im Rahmen der Lehrveranstaltung "Digitalisierung intermodaler Radverkehrsangebote" im Studiengang "Radverkehr in intermodalen Verkehrsnetzen" - Sommersemester 2026' </small>",
     unsafe_allow_html=True
 )
