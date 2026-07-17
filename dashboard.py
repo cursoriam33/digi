@@ -1099,75 +1099,100 @@ with tab_unfaelle:
             f"{len(unfall_features)} davon in Mitte"
         )
 
-        # --------------------------------------------------------------
-        # Hilfsfunktionen
-        # --------------------------------------------------------------
+       # --------------------------------------------------------------
+# Hilfsfunktionen
+# --------------------------------------------------------------
 
-        def unfallfarbe(kategorie):
-            farben = {
-                "1": "darkred",
-                "2": "orange",
-                "3": "blue"
-            }
+def normalisiere_kategorie(wert):
+    try:
+        return str(int(float(wert)))
+    except (TypeError, ValueError):
+        return ""
 
-            return farben.get(
-                str(kategorie),
-                "gray"
-            )
 
-        def kategorie_text(kategorie):
-            kategorien = {
-                "1": "Unfall mit Getöteten",
-                "2": "Unfall mit Schwerverletzten",
-                "3": "Unfall mit Leichtverletzten"
-            }
+def unfallfarbe(kategorie):
+    kategorie = normalisiere_kategorie(
+        kategorie
+    )
 
-            return kategorien.get(
-                str(kategorie),
-                "Unfall mit Personenschaden"
-            )
+    farben = {
+        "1": "darkred",
+        "2": "orange",
+        "3": "blue"
+    }
 
-        def monat_text(monat):
-            monate = {
-                "01": "Januar",
-                "02": "Februar",
-                "03": "März",
-                "04": "April",
-                "05": "Mai",
-                "06": "Juni",
-                "07": "Juli",
-                "08": "August",
-                "09": "September",
-                "10": "Oktober",
-                "11": "November",
-                "12": "Dezember"
-            }
+    return farben.get(
+        kategorie,
+        "gray"
+    )
 
-            try:
-                monat_key = f"{int(monat):02d}"
-            except (TypeError, ValueError):
-                return "–"
 
-            return monate.get(
-                monat_key,
-                "–"
-            )
+def kategorie_text(kategorie):
+    kategorie = normalisiere_kategorie(
+        kategorie
+    )
 
-        def wochentag_text(wochentag):
-            wochentage = {
-                "1": "Sonntag",
-                "2": "Montag",
-                "3": "Dienstag",
-                "4": "Mittwoch",
-                "5": "Donnerstag",
-                "6": "Freitag",
-                "7": "Samstag"
-            }
+    kategorien = {
+        "1": "Unfall mit Getöteten",
+        "2": "Unfall mit Schwerverletzten",
+        "3": "Unfall mit Leichtverletzten"
+    }
 
-            return wochentage.get(
-                str(wochentag),
-                "–"
-            )
+    return kategorien.get(
+        kategorie,
+        "Unfall mit Personenschaden"
+    )
+
+
+def monat_text(monat):
+    monate = {
+        "01": "Januar",
+        "02": "Februar",
+        "03": "März",
+        "04": "April",
+        "05": "Mai",
+        "06": "Juni",
+        "07": "Juli",
+        "08": "August",
+        "09": "September",
+        "10": "Oktober",
+        "11": "November",
+        "12": "Dezember"
+    }
+
+    try:
+        monat_key = f"{int(float(monat)):02d}"
+    except (TypeError, ValueError):
+        return "–"
+
+    return monate.get(
+        monat_key,
+        "–"
+    )
+
+
+def wochentag_text(wochentag):
+    try:
+        wochentag_key = str(
+            int(float(wochentag))
+        )
+    except (TypeError, ValueError):
+        return "–"
+
+    wochentage = {
+        "1": "Sonntag",
+        "2": "Montag",
+        "3": "Dienstag",
+        "4": "Mittwoch",
+        "5": "Donnerstag",
+        "6": "Freitag",
+        "7": "Samstag"
+    }
+
+    return wochentage.get(
+        wochentag_key,
+        "–"
+    )
 
         # --------------------------------------------------------------
         # Unfallpunkte darstellen
@@ -1247,20 +1272,9 @@ with tab_unfaelle:
                 <b>Jahr:</b>
                 {jahr}<br>
 
-                <b>Monat:</b>
-                {monat}<br>
-
-                <b>Wochentag:</b>
-                {wochentag}<br>
-
                 <b>Uhrzeit:</b>
                 {uhrzeit}<br><br>
 
-                <b>Bezirk:</b>
-                Berlin-Mitte<br>
-
-                <b>Fahrradbeteiligung:</b>
-                Ja
             </div>
             """
 
