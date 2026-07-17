@@ -853,7 +853,7 @@ with tab_unfaelle:
     # Fahrradbeteiligung = IstRadInt 1
     unfall_filter = (
         "ULAND = '11' "
-        "AND UGEMEINDE = '001' "
+        "AND UGEMEINDE = '01' "
         "AND IstRadInt = 1"
     )
 
