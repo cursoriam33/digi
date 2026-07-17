@@ -184,26 +184,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── URLs ──────────────────────────────────────────────────────────────────────
-
-viz_url = (
-    'https://viz.berlin.de/site/_masterportal/berlin/index.html'
-    '?MAPS={"center":[386892.3647828701,5821737.831466295],'
-    '"mode":"2D","zoom":6}'
-    '&MENU={"main":{"currentComponent":"root"},'
-    '"secondary":{"currentComponent":"root"}}'
-    '&LAYERS=['
-    '{"id":"basemap_raster_grau","visibility":true},'
-    '{"id":"luftbild2025","visibility":true},'
-    '{"id":"EcoCounter","visibility":true},'
-    '{"id":"bezirke","visibility":true},'
-    '{"id":"radplus_2025","visibility":false},'
-    '{"id":"radplus_2024","visibility":false},'
-    '{"id":"radplus_2023","visibility":false}'
-    ']#'
-)
-
-
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 
 tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
@@ -235,25 +215,44 @@ with tab_start:
             f"EcoCounter-ID: {daten['id']}"
         )
 
-        folium.Marker(
-            location=[daten["lat"], daten["lon"]],
-            popup=folium.Popup(
-                popup_text,
-                max_width=250
-            ),
-            tooltip=name,
-            icon=folium.Icon(
-                color=marker_farbe,
-                icon="info-sign"
-            )
-        ).add_to(karte)
-
+       
     st_folium(
         karte,
         height=550,
         use_container_width=True
     )
+folium.Marker(
+    location=[daten["lat"], daten["lon"]],
+    popup=folium.Popup(
+        f"""
+        <div style="width:220px">
+            <h4 style="margin-bottom:5px;">🚲 {name}</h4>
 
+            <b>EcoCounter-ID:</b> {daten['id']}<br><br>
+
+            <a href="{daten['url']}"
+               target="_blank"
+               style="
+                   background:#156082;
+                   color:white;
+                   padding:8px 12px;
+                   border-radius:6px;
+                   text-decoration:none;
+                   display:inline-block;
+               ">
+               📈 Live-Dashboard öffnen
+            </a>
+        </div>
+        """,
+        max_width=260
+    ),
+    tooltip=name,
+    icon=folium.Icon(
+        color=marker_farbe,
+        icon="bicycle",
+        prefix="fa"
+    )
+).add_to(karte)
 
 with tab_zaehlstelle:
     st.subheader(f"Zählstelle: {zaehler_name}")
