@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 
 # ── Seitenkonfiguration ──────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Radverkehr Berlin-Mitte",
+    page_title="Radverkehr in Berlin-Mitte",
     page_icon="🚲",
     layout="wide",
     initial_sidebar_state="expanded"
