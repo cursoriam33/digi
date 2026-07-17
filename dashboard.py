@@ -404,15 +404,14 @@ folium.LayerControl(
         collapsed=False
     ).add_to(massnahmen_karte)
 
-    st_folium(
+st_folium(
         massnahmen_karte,
         height=600,
         use_container_width=True,
         key="massnahmen_karte"
     )
-    st.caption(
-        "Quelle: Geoportal Berlin / GB infraVelo GmbH"
-    )
+
+st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
 with tab_unfaelle:
     st.info("Unfalldaten werden hier integriert.")
