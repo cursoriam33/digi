@@ -842,8 +842,6 @@ with tab_massnahmen:
             f"{fehler}"
         )
 
-st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
-
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
 with tab_unfaelle:
     st.subheader(
