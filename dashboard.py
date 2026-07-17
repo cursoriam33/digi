@@ -55,7 +55,7 @@ st.markdown("""
         border: 1px solid #D1D5DB !important;
     }
 
-    [data-testid="stSidebar"] { background: #1E88B8; }
+    [data-testid="stSidebar"] { background: #BAE2F4; }
     [data-testid="stSidebar"] * { color: black; }
 </style>
 """, unsafe_allow_html=True)
