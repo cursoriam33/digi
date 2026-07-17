@@ -275,7 +275,6 @@ st_folium(karte, height=350, use_container_width=True)
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<small style='color:#9CA3AF'>Datenquelle: Eco-Visio · "
-    "Stadt Herzberg (Elster) · Master Radverkehr, Modul Digitalisierung</small>",
+    "<small style='color:#9CA3AF'>Datenquelle: Senatsverwaltung für Mobilität, Verkehr, Klimaschutz und Umwelt / Radfahrzählstellen; GB infraVelo GmbH / Radverkehrsmaßnahmen; Statistische Ämter des Bundes und der Länder / Unfallatlas – Unfallorte 2017-2024 </small>",
     unsafe_allow_html=True
 )
