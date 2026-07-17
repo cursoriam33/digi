@@ -129,7 +129,7 @@ with st.sidebar:
     lat = st.number_input("Breitengrad", value=51.6917, format="%.4f")
     lon = st.number_input("Längengrad",  value=13.2333, format="%.4f")
     st.markdown("---")
-    st.markdown("<small style='color:#9CA3AF'>Labor-Hausaufgabe<br>im Rahmen der Lehrveranstaltung<br>Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang<br>Radverkehr in intermodalen Verkehrsnetzen<br>Sommersemester 2026</small>", unsafe_allow_html=True)
+    st.markdown("<small style='color:#E8E9EC'>Labor-Hausaufgabe<br>im Rahmen der Lehrveranstaltung<br>Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang<br>Radverkehr in intermodalen Verkehrsnetzen<br>Sommersemester 2026</small>", unsafe_allow_html=True)
 
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
