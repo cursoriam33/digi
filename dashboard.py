@@ -218,8 +218,7 @@ with tab_start:
                 🚲 {name}
             </h4>
 
-            <b>EcoCounter-ID:</b> {daten['id']}<br>
-            <b>Bezirk:</b> Berlin-Mitte
+           <b>Bezirk:</b> Berlin-Mitte
 
             <hr style="margin:8px 0;">
 
@@ -237,16 +236,6 @@ with tab_start:
                ">
                Live-Dashboard öffnen
             </a>
-
-            <hr style="margin:8px 0;">
-
-            <b>🚨 Unfallatlas</b><br>
-            Fahrradunfälle: <b>–</b>
-
-            <hr style="margin:8px 0;">
-
-            <b>🚲 Radverkehrsmaßnahmen</b><br>
-            Maßnahmen im Umfeld: <b>–</b>
 
         </div>
         """
