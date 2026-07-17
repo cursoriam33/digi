@@ -33,7 +33,7 @@ st.markdown("""
         background: white;
         border-radius: 12px;
         padding: 1.2rem 1.4rem;
-        border-left: 4px solid #2E7D55;
+        border-left: 4px solid #1E88B8;
         box-shadow: 0 1px 6px rgba(0,0,0,0.07);
     }
     .kpi-label { font-size: 0.78rem; color: #6B7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
