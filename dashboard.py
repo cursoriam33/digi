@@ -135,7 +135,7 @@ with st.sidebar:
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="hero">
-    <h1>🚲 Radverkehrs-Dashboard für den Bezirk Mitte</h1>
+    <h1>🚲 Radverkehr im Bezirk Mitte</h1>
     <p>Zählstelle · Unfalldaten · Radverkehrsmaßnahmen</p>
 </div>
 """, unsafe_allow_html=True)
