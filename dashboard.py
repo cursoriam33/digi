@@ -1410,16 +1410,14 @@ with tab_unfaelle:
                     🚨 Fahrradunfall
                 </h4>
 
-                <b>Unfallkategorie:</b><br>
-                {kategorie}
-                <br><br>
-                
-                <b>Unfalltyp:</b><br>
-                {unfalltyp}
-
                 <b>Jahr:</b>
                 {jahr_text(daten.get("UJAHR"))}<br>
-
+                </b><br>
+                <b>Unfallkategorie:</b><br>
+                {kategorie}<br>      
+                <b>Unfalltyp:</b><br>
+                {unfalltyp}<br>
+                </b><br>
                 <b>Uhrzeit:</b>
                 {uhrzeit_text(daten.get("USTUNDE"))}<br><br>
                 
