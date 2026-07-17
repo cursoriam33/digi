@@ -368,17 +368,12 @@ with tab_start:
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
-    wfs_url = (
-        "https://gdi.berlin.de/services/wfs/"
-        "radverkehrsmassnahmen"
-    )
-
     components.iframe(
         src=counter_url,
         height=900,
         scrolling=True
     )
-
+    
     # --------------------------------------------------------------
     # Ausgangswert aus der Sidebar
     # --------------------------------------------------------------
