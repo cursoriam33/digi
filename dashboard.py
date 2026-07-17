@@ -1052,42 +1052,42 @@ with tab_unfaelle:
             "gray"
         )
 
-def unfalltyp_text(utyp):
-    """
-    Gibt den Unfalltyp als Text zurück.
-    Unterstützt sowohl Textwerte als auch vorsorglich numerische Codes.
-    """
-
-    if utyp is None:
-        return "Unbekannt"
-
-    text = str(utyp).strip()
-
-    if text:
-        # Wenn der Dienst bereits einen Text liefert,
-        # diesen direkt verwenden.
-        if not text.replace(".", "").isdigit():
-            return text
-
-    try:
-        code = int(float(text))
-    except (TypeError, ValueError):
-        return "Unbekannt"
-
-    unfalltypen = {
-        1: "Fahrunfall",
-        2: "Abbiege-Unfall",
-        3: "Einbiegen / Kreuzen-Unfall",
-        4: "Überschreiten-Unfall",
-        5: "Unfall durch ruhenden Verkehr",
-        6: "Unfall im Längsverkehr",
-        7: "Sonstiger Unfall"
-    }
-
-    return unfalltypen.get(
-        code,
-        "Unbekannt"
-    )
+    def unfalltyp_text(utyp):
+        """
+        Gibt den Unfalltyp als Text zurück.
+        Unterstützt sowohl Textwerte als auch vorsorglich numerische Codes.
+        """
+    
+        if utyp is None:
+            return "Unbekannt"
+    
+        text = str(utyp).strip()
+    
+        if text:
+            # Wenn der Dienst bereits einen Text liefert,
+            # diesen direkt verwenden.
+            if not text.replace(".", "").isdigit():
+                return text
+    
+        try:
+            code = int(float(text))
+        except (TypeError, ValueError):
+            return "Unbekannt"
+    
+        unfalltypen = {
+            1: "Fahrunfall",
+            2: "Abbiege-Unfall",
+            3: "Einbiegen / Kreuzen-Unfall",
+            4: "Überschreiten-Unfall",
+            5: "Unfall durch ruhenden Verkehr",
+            6: "Unfall im Längsverkehr",
+            7: "Sonstiger Unfall"
+        }
+    
+        return unfalltypen.get(
+            code,
+            "Unbekannt"
+        )
 
     def monat_text(monat):
         monate = {
