@@ -197,38 +197,33 @@ tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
 
 
 with tab_start:
-     # Karte auf Berlin-Mitte zentrieren
+
+    # Karte auf Berlin-Mitte zentrieren
     karte = folium.Map(
         location=[52.5205, 13.4050],
         zoom_start=13,
         tiles="CartoDB positron"
     )
 
+    # Alle Zählstellen als Marker hinzufügen
     for name, daten in ZAEHLSTELLEN.items():
 
         ist_ausgewaehlt = name == zaehler_name
-
         marker_farbe = "green" if ist_ausgewaehlt else "blue"
 
-        popup_text = (
-            f"<b>{name}</b><br>"
-            f"EcoCounter-ID: {daten['id']}"
-        )
+        popup_html = f"""
+        <div style="width:240px; font-family:Arial, sans-serif;">
 
-       
-    st_folium(
-        karte,
-        height=550,
-        use_container_width=True
-    )
-folium.Marker(
-    location=[daten["lat"], daten["lon"]],
-    popup=folium.Popup(
-        f"""
-        <div style="width:220px">
-            <h4 style="margin-bottom:5px;">🚲 {name}</h4>
+            <h4 style="margin-bottom:8px; color:#156082;">
+                🚲 {name}
+            </h4>
 
-            <b>EcoCounter-ID:</b> {daten['id']}<br><br>
+            <b>EcoCounter-ID:</b> {daten['id']}<br>
+            <b>Bezirk:</b> Berlin-Mitte
+
+            <hr style="margin:8px 0;">
+
+            <b>📈 Radverkehr</b><br><br>
 
             <a href="{daten['url']}"
                target="_blank"
@@ -240,19 +235,42 @@ folium.Marker(
                    text-decoration:none;
                    display:inline-block;
                ">
-               📈 Live-Dashboard öffnen
+               Live-Dashboard öffnen
             </a>
+
+            <hr style="margin:8px 0;">
+
+            <b>🚨 Unfallatlas</b><br>
+            Fahrradunfälle: <b>–</b>
+
+            <hr style="margin:8px 0;">
+
+            <b>🚲 Radverkehrsmaßnahmen</b><br>
+            Maßnahmen im Umfeld: <b>–</b>
+
         </div>
-        """,
-        max_width=260
-    ),
-    tooltip=name,
-    icon=folium.Icon(
-        color=marker_farbe,
-        icon="bicycle",
-        prefix="fa"
+        """
+
+        folium.Marker(
+            location=[daten["lat"], daten["lon"]],
+            popup=folium.Popup(
+                popup_html,
+                max_width=280
+            ),
+            tooltip=name,
+            icon=folium.Icon(
+                color=marker_farbe,
+                icon="bicycle",
+                prefix="fa"
+            )
+        ).add_to(karte)
+
+    # Karte erst anzeigen, nachdem alle Marker hinzugefügt wurden
+    st_folium(
+        karte,
+        height=550,
+        use_container_width=True
     )
-).add_to(karte)
 
 with tab_zaehlstelle:
     st.subheader(f"Zählstelle: {zaehler_name}")
