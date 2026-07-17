@@ -834,10 +834,15 @@ with tab_massnahmen:
 st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
 # ── Tab Unfälle ────────────────────────────────────────────────────────────────
+
 with tab_unfaelle:
     st.subheader(
         "🚨 Fahrradunfälle mit Personenschaden in Berlin-Mitte"
     )
+
+    # ------------------------------------------------------------------
+    # Dienste
+    # ------------------------------------------------------------------
 
     unfall_service_url = (
         "https://services.arcgis.com/"
@@ -846,10 +851,14 @@ with tab_unfaelle:
         "FeatureServer/0/query"
     )
 
+    bezirke_wfs_url = (
+        "https://gdi.berlin.de/services/wfs/alkis_bezirke"
+    )
+
+    # UGEMEINDE wird bewusst nicht verwendet:
+    # Berliner Bezirke sind keine eigenständigen Gemeinden.
     unfall_filter = (
         "ULAND = '11' "
-        "AND UKREIS = '0' "
-        "AND UGEMEINDE = '01' "
         "AND IstRadInt = 1"
     )
 
@@ -860,6 +869,75 @@ with tab_unfaelle:
     )
 
     try:
+        # --------------------------------------------------------------
+        # 1. Bezirksgrenzen laden
+        # --------------------------------------------------------------
+
+        bezirke_response = requests.get(
+            bezirke_wfs_url,
+            params={
+                "service": "WFS",
+                "version": "2.0.0",
+                "request": "GetFeature",
+                "typeNames": "alkis_bezirke",
+                "outputFormat": "application/json",
+                "srsName": "EPSG:4326"
+            },
+            timeout=60
+        )
+
+        bezirke_response.raise_for_status()
+        bezirke_daten = bezirke_response.json()
+
+        mitte_feature = None
+
+        for feature in bezirke_daten.get("features", []):
+            eigenschaften = feature.get("properties", {})
+
+            # Robust alle Attributwerte durchsuchen,
+            # da die konkrete Namensspalte variieren kann.
+            attribut_text = " ".join(
+                str(wert)
+                for wert in eigenschaften.values()
+                if wert is not None
+            ).lower()
+
+            if "mitte" in attribut_text:
+                mitte_feature = feature
+                break
+
+        if mitte_feature is None:
+            st.error(
+                "Die Bezirksgrenze von Berlin-Mitte "
+                "konnte nicht gefunden werden."
+            )
+            st.stop()
+
+        mitte_geometrie = shape(
+            mitte_feature["geometry"]
+        )
+
+        # --------------------------------------------------------------
+        # Bezirksgrenze auf der Karte anzeigen
+        # --------------------------------------------------------------
+
+        folium.GeoJson(
+            mitte_feature,
+            name="Bezirksgrenze Mitte",
+            style_function=lambda feature: {
+                "color": "#263238",
+                "weight": 3,
+                "fillColor": "#90caf9",
+                "fillOpacity": 0.08,
+                "dashArray": "7, 5"
+            },
+            tooltip="Bezirksgrenze Berlin-Mitte"
+        ).add_to(unfall_karte)
+
+        # --------------------------------------------------------------
+        # 2. Alle Fahrradunfälle in Berlin laden
+        # --------------------------------------------------------------
+
         response = requests.get(
             unfall_service_url,
             params={
@@ -883,19 +961,27 @@ with tab_unfaelle:
             )
             st.stop()
 
-        unfall_features = unfall_daten.get(
+        berlin_features = unfall_daten.get(
             "features",
             []
         )
 
-        st.caption(
-            f"{len(unfall_features)} Fahrradunfälle "
-            "in Berlin-Mitte gefunden"
-        )
+        # --------------------------------------------------------------
+        # 3. Räumliche Filterung auf Berlin-Mitte
+        # --------------------------------------------------------------
 
-        for feature in unfall_features:
-            geometrie = feature.get("geometry", {})
-            koordinaten = geometrie.get("coordinates", [])
+        unfall_features = []
+
+        for feature in berlin_features:
+            geometrie = feature.get("geometry")
+
+            if not geometrie:
+                continue
+
+            koordinaten = geometrie.get(
+                "coordinates",
+                []
+            )
 
             if len(koordinaten) < 2:
                 continue
@@ -903,67 +989,192 @@ with tab_unfaelle:
             longitude = koordinaten[0]
             latitude = koordinaten[1]
 
-            daten = feature.get("properties", {})
-
-            kategorie = str(
-                daten.get("UKATEGORIE", "")
+            unfallpunkt = Point(
+                longitude,
+                latitude
             )
 
+            # covers() berücksichtigt auch Punkte direkt
+            # auf der Bezirksgrenze.
+            if mitte_geometrie.covers(unfallpunkt):
+                unfall_features.append(feature)
+
+        st.caption(
+            f"{len(berlin_features)} Fahrradunfälle "
+            "in Berlin geladen · "
+            f"{len(unfall_features)} davon in Mitte"
+        )
+
+        # --------------------------------------------------------------
+        # Hilfsfunktionen
+        # --------------------------------------------------------------
+
+        def unfallfarbe(kategorie):
             farben = {
                 "1": "darkred",
                 "2": "orange",
                 "3": "blue"
             }
 
-            bezeichnungen = {
+            return farben.get(
+                str(kategorie),
+                "gray"
+            )
+
+        def kategorie_text(kategorie):
+            kategorien = {
                 "1": "Unfall mit Getöteten",
                 "2": "Unfall mit Schwerverletzten",
                 "3": "Unfall mit Leichtverletzten"
             }
 
-            farbe = farben.get(
-                kategorie,
-                "gray"
-            )
-
-            bezeichnung = bezeichnungen.get(
-                kategorie,
+            return kategorien.get(
+                str(kategorie),
                 "Unfall mit Personenschaden"
             )
 
+        def monat_text(monat):
+            monate = {
+                "01": "Januar",
+                "02": "Februar",
+                "03": "März",
+                "04": "April",
+                "05": "Mai",
+                "06": "Juni",
+                "07": "Juli",
+                "08": "August",
+                "09": "September",
+                "10": "Oktober",
+                "11": "November",
+                "12": "Dezember"
+            }
+
+            try:
+                monat_key = f"{int(monat):02d}"
+            except (TypeError, ValueError):
+                return "–"
+
+            return monate.get(
+                monat_key,
+                "–"
+            )
+
+        def wochentag_text(wochentag):
+            wochentage = {
+                "1": "Sonntag",
+                "2": "Montag",
+                "3": "Dienstag",
+                "4": "Mittwoch",
+                "5": "Donnerstag",
+                "6": "Freitag",
+                "7": "Samstag"
+            }
+
+            return wochentage.get(
+                str(wochentag),
+                "–"
+            )
+
+        # --------------------------------------------------------------
+        # Unfallpunkte darstellen
+        # --------------------------------------------------------------
+
+        for feature in unfall_features:
+            geometrie = feature.get(
+                "geometry",
+                {}
+            )
+
+            koordinaten = geometrie.get(
+                "coordinates",
+                []
+            )
+
+            longitude = koordinaten[0]
+            latitude = koordinaten[1]
+
+            daten = feature.get(
+                "properties",
+                {}
+            )
+
+            kategorie = str(
+                daten.get("UKATEGORIE", "")
+            )
+
+            farbe = unfallfarbe(
+                kategorie
+            )
+
+            bezeichnung = kategorie_text(
+                kategorie
+            )
+
+            jahr = (
+                daten.get("UJAHR")
+                or "–"
+            )
+
+            monat = monat_text(
+                daten.get("UMONAT")
+            )
+
+            wochentag = wochentag_text(
+                daten.get("UWOCHENTAG")
+            )
+
+            stunde = daten.get(
+                "USTUNDE"
+            )
+
+            try:
+                uhrzeit = (
+                    f"{int(stunde):02d}:00 Uhr"
+                )
+            except (TypeError, ValueError):
+                uhrzeit = "–"
+
             popup_html = f"""
             <div style="
-                width:250px;
+                width:260px;
                 font-family:Arial, sans-serif;
             ">
-                <h4 style="color:#b71c1c;">
+                <h4 style="
+                    color:#b71c1c;
+                    margin-bottom:10px;
+                ">
                     🚨 Fahrradunfall
                 </h4>
 
-                <b>Kategorie:</b><br>
-                {bezeichnung}<br><br>
+                <b>Unfallkategorie:</b><br>
+                {bezeichnung}
+                <br><br>
 
                 <b>Jahr:</b>
-                {daten.get("UJAHR") or "–"}<br>
+                {jahr}<br>
 
                 <b>Monat:</b>
-                {daten.get("UMONAT") or "–"}<br>
+                {monat}<br>
 
                 <b>Wochentag:</b>
-                {daten.get("UWOCHENTAG") or "–"}<br>
+                {wochentag}<br>
 
-                <b>Stunde:</b>
-                {daten.get("USTUNDE") or "–"}<br><br>
+                <b>Uhrzeit:</b>
+                {uhrzeit}<br><br>
 
-                <b>Gebietscode:</b>
-                {daten.get("ULAND")}/
-                {daten.get("UKREIS")}/
-                {daten.get("UGEMEINDE")}
+                <b>Bezirk:</b>
+                Berlin-Mitte<br>
+
+                <b>Fahrradbeteiligung:</b>
+                Ja
             </div>
             """
 
             folium.CircleMarker(
-                location=[latitude, longitude],
+                location=[
+                    latitude,
+                    longitude
+                ],
                 radius=7,
                 color=farbe,
                 weight=2,
@@ -977,6 +1188,75 @@ with tab_unfaelle:
                 tooltip=bezeichnung
             ).add_to(unfall_karte)
 
+        # --------------------------------------------------------------
+        # Legende
+        # --------------------------------------------------------------
+
+        unfall_legende = """
+        <div style="
+            position:fixed;
+            bottom:35px;
+            left:35px;
+            z-index:9999;
+            background:white;
+            padding:12px 15px;
+            border:2px solid #777;
+            border-radius:6px;
+            font-size:13px;
+            box-shadow:0 1px 5px rgba(0,0,0,0.35);
+        ">
+            <b>Unfallkategorie</b><br><br>
+
+            <span style="
+                display:inline-block;
+                width:12px;
+                height:12px;
+                border-radius:50%;
+                background:darkred;
+                margin-right:8px;
+            "></span>
+            Unfall mit Getöteten<br><br>
+
+            <span style="
+                display:inline-block;
+                width:12px;
+                height:12px;
+                border-radius:50%;
+                background:orange;
+                margin-right:8px;
+            "></span>
+            Unfall mit Schwerverletzten<br><br>
+
+            <span style="
+                display:inline-block;
+                width:12px;
+                height:12px;
+                border-radius:50%;
+                background:blue;
+                margin-right:8px;
+            "></span>
+            Unfall mit Leichtverletzten<br><br>
+
+            <span style="
+                display:inline-block;
+                width:28px;
+                border-top:3px dashed #263238;
+                margin-right:8px;
+            "></span>
+            Bezirksgrenze Mitte
+        </div>
+        """
+
+        unfall_karte.get_root().html.add_child(
+            folium.Element(
+                unfall_legende
+            )
+        )
+
+        # --------------------------------------------------------------
+        # Karte anzeigen
+        # --------------------------------------------------------------
+
         st_folium(
             unfall_karte,
             height=650,
@@ -985,16 +1265,17 @@ with tab_unfaelle:
         )
 
         st.caption(
-            "Quelle: Unfallatlas der Statistischen Ämter "
-            f"des Bundes und der Länder · "
+            "Quelle Unfalldaten: Unfallatlas der "
+            "Statistischen Ämter des Bundes und der Länder · "
+            "Quelle Bezirksgrenze: Geoportal Berlin · "
             f"{len(unfall_features)} Fahrradunfälle "
-            "mit Personenschaden in Berlin-Mitte · Lizenz: © GeoBasis-DE/BKG 2026 CC BY 4.0"
+            "mit Personenschaden in Berlin-Mitte"
         )
 
     except requests.exceptions.RequestException as fehler:
         st.error(
-            "Die Unfalldaten konnten nicht geladen werden: "
-            f"{fehler}"
+            "Die Geo- oder Unfalldaten konnten "
+            f"nicht geladen werden: {fehler}"
         )
 
         st_folium(
@@ -1004,10 +1285,14 @@ with tab_unfaelle:
             key="unfall_karte_fehler"
         )
 
-    except (ValueError, TypeError, KeyError) as fehler:
+    except (
+        ValueError,
+        TypeError,
+        KeyError
+    ) as fehler:
         st.error(
-            "Die Unfalldaten konnten nicht verarbeitet werden: "
-            f"{fehler}"
+            "Die Geo- oder Unfalldaten konnten "
+            f"nicht verarbeitet werden: {fehler}"
         )
 
 
