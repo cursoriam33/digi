@@ -260,8 +260,7 @@ with tab_start:
 
 with tab_zaehlstelle:
     st.subheader(f"Zählstelle: {zaehler_name}")
-    st.caption(f"EcoCounter-ID: {counter_id}")
-
+   
     components.iframe(
         src=counter_url,
         height=900,
@@ -270,7 +269,58 @@ with tab_zaehlstelle:
 
 
 with tab_massnahmen:
-    st.info("Radverkehrsmaßnahmen werden hier integriert.")
+    with tab_massnahmen:
+
+    st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
+
+    api_url = "https://www.infravelo.de/api/v1/projects/district/mitte/"
+
+    try:
+        response = requests.get(api_url, timeout=15)
+        response.raise_for_status()
+
+        geojson_daten = response.json()
+
+        massnahmen_karte = folium.Map(
+            location=[52.5205, 13.4050],
+            zoom_start=12,
+            tiles="CartoDB positron"
+        )
+
+        folium.GeoJson(
+            geojson_daten,
+            name="Radverkehrsmaßnahmen",
+            style_function=lambda feature: {
+                "color": "#156082",
+                "weight": 4,
+                "opacity": 0.9,
+                "fillColor": "#156082",
+                "fillOpacity": 0.4
+            }
+        ).add_to(massnahmen_karte)
+
+        folium.LayerControl().add_to(massnahmen_karte)
+
+        st_folium(
+            massnahmen_karte,
+            height=550,
+            use_container_width=True,
+            key="massnahmen_karte"
+        )
+
+        st.caption(
+            "Quelle: infraVelo – Radverkehrsprojekte im Bezirk Mitte"
+        )
+
+    except requests.exceptions.RequestException as fehler:
+        st.error(
+            f"Die Maßnahmen konnten nicht geladen werden: {fehler}"
+        )
+
+    except ValueError:
+        st.error(
+            "Die API hat keine gültigen GeoJSON-Daten zurückgegeben."
+        )
 
 
 with tab_unfaelle:
