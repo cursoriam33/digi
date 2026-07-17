@@ -535,9 +535,12 @@ with tab_massnahmen:
             f"{len(features_mitte)} Maßnahmen im Bezirk Mitte"
         )
 
+       # --------------------------------------------------------------
+        # Maßnahme aus Sidebar oder Kartenklick ermitteln
         # --------------------------------------------------------------
-        # Angeklickte Maßnahme ermitteln
-        # --------------------------------------------------------------
+
+        # Standard: Auswahl aus der Sidebar
+        ausgewaehltes_feature = massnahme
 
         klick = kartendaten.get("last_clicked") if kartendaten else None
 
@@ -653,6 +656,7 @@ with tab_massnahmen:
             st.info(
                 "Klicke auf eine Maßnahmenlinie, um die "
                 "zugehörigen Informationen unterhalb der Karte anzuzeigen."
+                "Es wird weiterhin die Auswahl aus der Sidebar angezeigt."
             )
 
     except requests.exceptions.RequestException as fehler:
