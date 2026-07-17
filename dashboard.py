@@ -218,7 +218,7 @@ with tab_start:
                 🚲 {name}
             </h4>
 
-           <b>Bezirk:</b> Berlin-Mitte
+           <b>Bezirk:</b> Berlin-Mitte</b><br><br>
 
            
             <a href="{daten['url']}"
