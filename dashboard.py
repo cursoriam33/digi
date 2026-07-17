@@ -265,7 +265,7 @@ with tab_start:
     # Karte auf Berlin-Mitte zentrieren
     karte = folium.Map(
         location=[52.5326, 13.3660],
-        zoom_start=14,
+        zoom_start=13,
         tiles="CartoDB positron"
     )
 
