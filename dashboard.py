@@ -151,7 +151,7 @@ ZAEHLSTELLEN = {
 
 with st.sidebar:
 
-    st.title("🚲 Radverkehr Berlin-Mitte")
+    st.markdown("## Radverkehr in Berlin-Mitte")
     st.markdown("---")
 
     auswahl = st.selectbox(
@@ -168,18 +168,7 @@ with st.sidebar:
     lon = counter["lon"]
 
     st.markdown("---")
-
-    st.markdown(
-        """
-        <small>
-        Labor-Hausaufgabe<br><br>
-        Digitalisierung intermodaler Radverkehrsangebote<br><br>
-        Studiengang Radverkehr in intermodalen Verkehrsnetzen<br><br>
-        Sommersemester 2026
-        </small>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("<small style='color:#E8E9EC'>Labor-Hausaufgabe<br>im Rahmen der Lehrveranstaltung<br>Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang<br>Radverkehr in intermodalen Verkehrsnetzen<br>Sommersemester 2026</small>", unsafe_allow_html=True)
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
