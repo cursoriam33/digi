@@ -453,7 +453,7 @@ with tab_massnahmen:
 
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
-        zoom_start=12,
+        zoom_start=16,
         tiles="CartoDB positron"
     )
 
