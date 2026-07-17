@@ -1099,203 +1099,221 @@ with tab_unfaelle:
             f"{len(unfall_features)} davon in Mitte"
         )
 
-       # --------------------------------------------------------------
-# Hilfsfunktionen
-# --------------------------------------------------------------
-
-def normalisiere_kategorie(wert):
-    try:
-        return str(int(float(wert)))
-    except (TypeError, ValueError):
-        return ""
-
-
-def unfallfarbe(kategorie):
-    kategorie = normalisiere_kategorie(
-        kategorie
-    )
-
-    farben = {
-        "1": "darkred",
-        "2": "orange",
-        "3": "blue"
-    }
-
-    return farben.get(
-        kategorie,
-        "gray"
-    )
-
-
-def kategorie_text(kategorie):
-    kategorie = normalisiere_kategorie(
-        kategorie
-    )
-
-    kategorien = {
-        "1": "Unfall mit Getöteten",
-        "2": "Unfall mit Schwerverletzten",
-        "3": "Unfall mit Leichtverletzten"
-    }
-
-    return kategorien.get(
-        kategorie,
-        "Unfall mit Personenschaden"
-    )
-
-
-def monat_text(monat):
-    monate = {
-        "01": "Januar",
-        "02": "Februar",
-        "03": "März",
-        "04": "April",
-        "05": "Mai",
-        "06": "Juni",
-        "07": "Juli",
-        "08": "August",
-        "09": "September",
-        "10": "Oktober",
-        "11": "November",
-        "12": "Dezember"
-    }
-
-    try:
-        monat_key = f"{int(float(monat)):02d}"
-    except (TypeError, ValueError):
-        return "–"
-
-    return monate.get(
-        monat_key,
-        "–"
-    )
-
-
-def wochentag_text(wochentag):
-    try:
-        wochentag_key = str(
-            int(float(wochentag))
-        )
-    except (TypeError, ValueError):
-        return "–"
-
-    wochentage = {
-        "1": "Sonntag",
-        "2": "Montag",
-        "3": "Dienstag",
-        "4": "Mittwoch",
-        "5": "Donnerstag",
-        "6": "Freitag",
-        "7": "Samstag"
-    }
-
-    return wochentage.get(
-        wochentag_key,
-        "–"
-    )
+        # --------------------------------------------------------------
+        # Hilfsfunktionen
+        # --------------------------------------------------------------
+        
+        def normalisiere_kategorie(wert):
+            try:
+                return str(int(float(wert)))
+            except (TypeError, ValueError):
+                return ""
+        
+        
+        def unfallfarbe(kategorie):
+            kategorie = normalisiere_kategorie(
+                kategorie
+            )
+        
+            farben = {
+                "1": "darkred",
+                "2": "orange",
+                "3": "blue"
+            }
+        
+            return farben.get(
+                kategorie,
+                "gray"
+            )
+        
+        
+        def kategorie_text(kategorie):
+            kategorie = normalisiere_kategorie(
+                kategorie
+            )
+        
+            kategorien = {
+                "1": "Unfall mit Getöteten",
+                "2": "Unfall mit Schwerverletzten",
+                "3": "Unfall mit Leichtverletzten"
+            }
+        
+            return kategorien.get(
+                kategorie,
+                "Unfall mit Personenschaden"
+            )
+        
+        
+        def monat_text(monat):
+            monate = {
+                "01": "Januar",
+                "02": "Februar",
+                "03": "März",
+                "04": "April",
+                "05": "Mai",
+                "06": "Juni",
+                "07": "Juli",
+                "08": "August",
+                "09": "September",
+                "10": "Oktober",
+                "11": "November",
+                "12": "Dezember"
+            }
+        
+            try:
+                monat_key = f"{int(float(monat)):02d}"
+            except (TypeError, ValueError):
+                return "–"
+        
+            return monate.get(
+                monat_key,
+                "–"
+            )
+        
+        
+        def wochentag_text(wochentag):
+            try:
+                wochentag_key = str(
+                    int(float(wochentag))
+                )
+            except (TypeError, ValueError):
+                return "–"
+        
+            wochentage = {
+                "1": "Sonntag",
+                "2": "Montag",
+                "3": "Dienstag",
+                "4": "Mittwoch",
+                "5": "Donnerstag",
+                "6": "Freitag",
+                "7": "Samstag"
+            }
+        
+            return wochentage.get(
+                wochentag_key,
+                "–"
+            )
 
         # --------------------------------------------------------------
         # Unfallpunkte darstellen
         # --------------------------------------------------------------
 
         for feature in unfall_features:
-            geometrie = feature.get(
-                "geometry",
-                {}
-            )
+    geometrie = feature.get(
+        "geometry",
+        {}
+    )
 
-            koordinaten = geometrie.get(
-                "coordinates",
-                []
-            )
+    koordinaten = geometrie.get(
+        "coordinates",
+        []
+    )
 
-            longitude = koordinaten[0]
-            latitude = koordinaten[1]
+    if len(koordinaten) < 2:
+        continue
 
-            daten = feature.get(
-                "properties",
-                {}
-            )
+    longitude = koordinaten[0]
+    latitude = koordinaten[1]
 
-            kategorie = str(
-                daten.get("UKATEGORIE", "")
-            )
+    daten = feature.get(
+        "properties",
+        {}
+    )
 
-            farbe = unfallfarbe(
-                kategorie
-            )
+    kategorie_roh = daten.get(
+        "UKATEGORIE"
+    )
 
-            bezeichnung = kategorie_text(
-                kategorie
-            )
+    kategorie = normalisiere_kategorie(
+        kategorie_roh
+    )
 
-            jahr = (
-                daten.get("UJAHR")
-                or "–"
-            )
+    farbe = unfallfarbe(
+        kategorie
+    )
 
-            monat = monat_text(
-                daten.get("UMONAT")
-            )
+    bezeichnung = kategorie_text(
+        kategorie
+    )
 
-            wochentag = wochentag_text(
-                daten.get("UWOCHENTAG")
-            )
+    jahr = (
+        daten.get("UJAHR")
+        or "–"
+    )
 
-            stunde = daten.get(
-                "USTUNDE"
-            )
+    monat = monat_text(
+        daten.get("UMONAT")
+    )
 
-            try:
-                uhrzeit = (
-                    f"{int(stunde):02d}:00 Uhr"
-                )
-            except (TypeError, ValueError):
-                uhrzeit = "–"
+    wochentag = wochentag_text(
+        daten.get("UWOCHENTAG")
+    )
 
-            popup_html = f"""
-            <div style="
-                width:260px;
-                font-family:Arial, sans-serif;
-            ">
-                <h4 style="
-                    color:#b71c1c;
-                    margin-bottom:10px;
-                ">
-                    🚨 Fahrradunfall
-                </h4>
+    stunde = daten.get(
+        "USTUNDE"
+    )
 
-                <b>Unfallkategorie:</b><br>
-                {bezeichnung}
-                <br><br>
+    try:
+        uhrzeit = (
+            f"{int(float(stunde)):02d}:00 Uhr"
+        )
+    except (TypeError, ValueError):
+        uhrzeit = "–"
 
-                <b>Jahr:</b>
-                {jahr}<br>
+    popup_html = f"""
+    <div style="
+        width:260px;
+        font-family:Arial, sans-serif;
+    ">
+        <h4 style="
+            color:#b71c1c;
+            margin-bottom:10px;
+        ">
+            🚨 Fahrradunfall
+        </h4>
 
-                <b>Uhrzeit:</b>
-                {uhrzeit}<br><br>
+        <b>Unfallkategorie:</b><br>
+        {bezeichnung}
+        <br><br>
 
-            </div>
-            """
+        <b>Jahr:</b>
+        {jahr}<br>
 
-            folium.CircleMarker(
-                location=[
-                    latitude,
-                    longitude
-                ],
-                radius=7,
-                color=farbe,
-                weight=2,
-                fill=True,
-                fill_color=farbe,
-                fill_opacity=0.8,
-                popup=folium.Popup(
-                    popup_html,
-                    max_width=300
-                ),
-                tooltip=bezeichnung
-            ).add_to(unfall_karte)
+        <b>Monat:</b>
+        {monat}<br>
 
+        <b>Wochentag:</b>
+        {wochentag}<br>
+
+        <b>Uhrzeit:</b>
+        {uhrzeit}<br><br>
+
+        <b>Bezirk:</b>
+        Berlin-Mitte<br>
+
+        <b>Fahrradbeteiligung:</b>
+        Ja
+    </div>
+    """
+
+    folium.CircleMarker(
+        location=[
+            latitude,
+            longitude
+        ],
+        radius=7,
+        color=farbe,
+        weight=2,
+        fill=True,
+        fill_color=farbe,
+        fill_opacity=0.8,
+        popup=folium.Popup(
+            popup_html,
+            max_width=300
+        ),
+        tooltip=bezeichnung
+    ).add_to(unfall_karte)
+    
         # --------------------------------------------------------------
         # Legende
         # --------------------------------------------------------------
