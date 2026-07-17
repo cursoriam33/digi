@@ -8,6 +8,7 @@ from streamlit_folium import st_folium
 import streamlit.components.v1 as components
 import json
 import requests
+import xml.etree.ElementTree as ET
 
 
 def show_ecocounter(url):
@@ -274,8 +275,9 @@ with tab_zaehlstelle:
 with tab_massnahmen:
     st.subheader("🚲 Radverkehrsmaßnahmen in Berlin-Mitte")
 
-    api_url = "https://www.infravelo.de/api/v1/projects/district/mitte/"
+    wms_url = "https://gdi.berlin.de/services/wms/radverkehrsmassnahmen"
 
+    # Karte auf den Bezirk Mitte zentrieren
     massnahmen_karte = folium.Map(
         location=[52.5205, 13.4050],
         zoom_start=12,
@@ -283,100 +285,81 @@ with tab_massnahmen:
     )
 
     try:
-        response = requests.get(api_url, timeout=20)
+        # WMS-Beschreibung laden
+        response = requests.get(
+            wms_url,
+            params={
+                "service": "WMS",
+                "request": "GetCapabilities"
+            },
+            timeout=20
+        )
+
         response.raise_for_status()
 
-        api_daten = response.json()
+        # XML auswerten
+        root = ET.fromstring(response.content)
 
-        # Die infraVelo-API liefert Projekte unter "results"
-        projekte = api_daten.get("results", [])
+        # Alle verfügbaren Layernamen suchen
+        layer_namen = []
 
-        features = []
+        for element in root.iter():
 
-        for projekt in projekte:
+            if element.tag.endswith("Name") and element.text:
+                name = element.text.strip()
 
-            # Geometrie suchen
-            geometrie = (
-                projekt.get("geometry")
-                or projekt.get("geom")
-                or projekt.get("geojson")
-            )
+                # Technische Einträge wie "WMS" überspringen
+                if name and name.upper() not in ["WMS"]:
+                    layer_namen.append(name)
 
-            # GeoJSON kann teilweise als String geliefert werden
-            if isinstance(geometrie, str):
-                try:
-                    geometrie = json.loads(geometrie)
-                except json.JSONDecodeError:
-                    geometrie = None
+        if layer_namen:
 
-            if not isinstance(geometrie, dict):
-                continue
+            # Ersten verfügbaren Kartenlayer verwenden
+            wms_layer = layer_namen[0]
 
-            feature = {
-                "type": "Feature",
-                "geometry": geometrie,
-                "properties": {
-                    "name": (
-                        projekt.get("title")
-                        or projekt.get("name")
-                        or "Radverkehrsmaßnahme"
-                    ),
-                    "status": projekt.get("status", "Keine Angabe"),
-                    "id": projekt.get("id", "")
-                }
-            }
-
-            features.append(feature)
-
-        geojson_daten = {
-            "type": "FeatureCollection",
-            "features": features
-        }
-
-        if features:
-
-            folium.GeoJson(
-                geojson_daten,
+            folium.WmsTileLayer(
+                url=wms_url,
+                layers=wms_layer,
                 name="Radverkehrsmaßnahmen",
-                style_function=lambda feature: {
-                    "color": "#156082",
-                    "weight": 4,
-                    "opacity": 0.9,
-                    "fillColor": "#156082",
-                    "fillOpacity": 0.35
-                },
-                tooltip=folium.GeoJsonTooltip(
-                    fields=["name", "status"],
-                    aliases=["Maßnahme:", "Status:"],
-                    localize=True
-                )
+                fmt="image/png",
+                transparent=True,
+                version="1.3.0",
+                overlay=True,
+                control=True
             ).add_to(massnahmen_karte)
 
-            folium.LayerControl().add_to(massnahmen_karte)
+            folium.LayerControl(
+                collapsed=False
+            ).add_to(massnahmen_karte)
+
+            st_folium(
+                massnahmen_karte,
+                height=550,
+                use_container_width=True,
+                key="massnahmen_karte"
+            )
+
+            st.caption(
+                f"Quelle: Geoportal Berlin / infraVelo · "
+                f"WMS-Layer: {wms_layer}"
+            )
 
         else:
             st.warning(
-                "Die API liefert Projekte, aber keine direkt "
-                "verwendbaren Geometrien."
+                "Im WMS-Dienst wurde kein darstellbarer Layer gefunden."
             )
 
-        st_folium(
-            massnahmen_karte,
-            height=550,
-            use_container_width=True,
-            key="massnahmen_karte"
-        )
-
-        st.caption(
-            f"Quelle: infraVelo – {len(projekte)} Projekte geladen, "
-            f"{len(features)} davon mit Geometrie."
-        )
-
     except requests.exceptions.RequestException as fehler:
-        st.error(f"Fehler beim Abrufen der infraVelo-API: {fehler}")
 
-    except ValueError as fehler:
-        st.error(f"Die API liefert kein gültiges JSON: {fehler}")
+        st.error(
+            f"Der WMS-Dienst konnte nicht geladen werden: {fehler}"
+        )
+
+    except ET.ParseError as fehler:
+
+        st.error(
+            f"Die WMS-Beschreibung konnte nicht gelesen werden: {fehler}"
+        )
 
 
 with tab_unfaelle:
