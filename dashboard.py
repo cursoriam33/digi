@@ -182,6 +182,68 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── URLs ──────────────────────────────────────────────────────────────────────
+# ── URLs ──────────────────────────────────────────────────────────────────────
+
+viz_url = (
+    'https://viz.berlin.de/site/_masterportal/berlin/index.html'
+    '?MAPS={"center":[386892.3647828701,5821737.831466295],'
+    '"mode":"2D","zoom":6}'
+    '&MENU={"main":{"currentComponent":"root"},'
+    '"secondary":{"currentComponent":"root"}}'
+    '&LAYERS=['
+    '{"id":"basemap_raster_grau","visibility":true},'
+    '{"id":"luftbild2025","visibility":true},'
+    '{"id":"EcoCounter","visibility":true},'
+    '{"id":"bezirke","visibility":true},'
+    '{"id":"radplus_2025","visibility":false},'
+    '{"id":"radplus_2024","visibility":false},'
+    '{"id":"radplus_2023","visibility":false}'
+    ']#'
+)
+
+
+# ── Tabs ──────────────────────────────────────────────────────────────────────
+
+tab_start, tab_zaehlstelle, tab_massnahmen, tab_unfaelle = st.tabs(
+    [
+        "🏠 Übersicht",
+        "📈 Zählstelle",
+        "🚲 Maßnahmen",
+        "🚨 Unfälle"
+    ]
+)
+
+
+with tab_start:
+    st.subheader("Übersicht Berlin-Mitte")
+
+    components.iframe(
+        src=viz_url,
+        height=750,
+        scrolling=True
+    )
+
+
+with tab_zaehlstelle:
+    st.subheader(zaehler_name)
+    st.caption(f"EcoCounter-ID: {counter_id}")
+
+    components.iframe(
+        src=counter_url,
+        height=900,
+        scrolling=True
+    )
+
+
+with tab_massnahmen:
+    st.info("Radverkehrsmaßnahmen werden hier integriert.")
+
+
+with tab_unfaelle:
+    st.info("Unfalldaten werden hier integriert.")
+
+
 if not uploaded_file:
     st.info("👈 Bitte eine Eco-Visio CSV-Datei in der Seitenleiste hochladen, um das Dashboard zu starten.")
     st.stop()
