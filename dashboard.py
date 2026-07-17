@@ -136,7 +136,7 @@ with st.sidebar:
 st.markdown(f"""
 <div class="hero">
     <h1>🚲 Radverkehrs-Dashboard</h1>
-    <p>Berlin-Mitte · Zählstelle {zaehler_name if uploaded_file else "–"}</p>
+    <p>Berlin-Mitte · Zählstelle {zaehler_name if uploaded_file else "–"} · Unfalldaten · Radverkehrsmaßnahmen</p>
 </div>
 """, unsafe_allow_html=True)
 
