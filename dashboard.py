@@ -1200,75 +1200,76 @@ with tab_unfaelle:
                 )
 
         # ---------------------------------------------------------------------
-        # 4. Unfallpunkte darstellen
+        # Unfallpunkte darstellen
         # ---------------------------------------------------------------------
-
+        
         for feature in unfall_features:
             geometrie = feature.get(
                 "geometry",
                 {}
             )
-
+        
             koordinaten = geometrie.get(
                 "coordinates",
                 []
             )
-
+        
             if len(koordinaten) < 2:
                 continue
-
-            longitude = float(
-                koordinaten[0]
-            )
-
-            latitude = float(
-                koordinaten[1]
-            )
-
+        
+            try:
+                longitude = float(
+                    koordinaten[0]
+                )
+        
+                latitude = float(
+                    koordinaten[1]
+                )
+        
+            except (TypeError, ValueError):
+                continue
+        
             daten = feature.get(
                 "properties",
                 {}
             )
-
+        
             kategorie_roh = daten.get(
                 "UKATEGORIE"
             )
-
-            kategorie = normalisiere_zahl(
+        
+            farbe = unfallfarbe(
                 kategorie_roh
             )
-
-            farbe = unfallfarbe(
-                kategorie
-            )
-
+        
             bezeichnung = kategorie_text(
-                kategorie
+                kategorie_roh
             )
-
+        
             jahr = daten.get(
                 "UJAHR"
             )
-
+        
             if jahr is None:
                 jahr_text = "–"
             else:
-                jahr_text = normalisiere_zahl(
-                    jahr
-                ) or str(jahr)
-
+                jahr_text = (
+                    normalisiere_zahl(jahr)
+                    or str(jahr)
+                )
+        
             monat = monat_text(
                 daten.get("UMONAT")
             )
-
+        
             wochentag = wochentag_text(
                 daten.get("UWOCHENTAG")
             )
-
+        
             uhrzeit = uhrzeit_text(
                 daten.get("USTUNDE")
             )
-
+        
             popup_html = f"""
             <div style="
                 width:270px;
@@ -1282,20 +1283,20 @@ with tab_unfaelle:
                 ">
                     🚨 Fahrradunfall
                 </h4>
-
+        
                 <b>Unfallkategorie:</b><br>
                 {bezeichnung}
                 <br><br>
-
+        
                 <b>Jahr:</b>
                 {jahr_text}<br>
-
+              
                 <b>Uhrzeit:</b>
                 {uhrzeit}<br><br>
-                
+        
             </div>
             """
-
+        
             folium.CircleMarker(
                 location=[
                     latitude,
