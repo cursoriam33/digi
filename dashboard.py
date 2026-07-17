@@ -114,130 +114,72 @@ def kpi_card(label, value, sub=""):
         <div class="kpi-sub">{sub}</div>
     </div>"""
 
+# ── Sidebar ───────────────────────────────────────────────────────────────
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## Radverkehr in Berlin-Mitte")
-    st.markdown("---")
-   ZAEHLSTELLEN = {
-    "Nordufer": 30003779,
-    "Invalidenstraße": 100032152,
-    "Karl-Marx-Allee": 300021646,
-    "Strausberger Platz": 300041564,
-    "Jannowitzbrücke": 100024661
+ZAEHLSTELLEN = {
+    "Nordufer": {
+        "id": 30003779,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/30003779",
+        "lat": 52.53179,
+        "lon": 13.35147,
+    },
+    "Invalidenstraße": {
+        "id": 100032152,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/100032152",
+        "lat": 52.52873,
+        "lon": 13.38166,
+    },
+    "Karl-Marx-Allee": {
+        "id": 300021646,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/300021646",
+        "lat": 52.52048,
+        "lon": 13.43883,
+    },
+    "Strausberger Platz": {
+        "id": 300041564,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/300041564",
+        "lat": 52.51931,
+        "lon": 13.43282,
+    },
+    "Jannowitzbrücke": {
+        "id": 100024661,
+        "url": "https://verkehrsmanagementberlin.eco-counter.com/site/100024661",
+        "lat": 52.51433,
+        "lon": 13.41817,
+    },
 }
 
-auswahl = st.sidebar.selectbox(
-    "Radverkehrszählstelle",
-    list(ZAEHLSTELLEN.keys())
-)
+with st.sidebar:
 
-counter_id = ZAEHLSTELLEN[auswahl]
+    st.title("🚲 Radverkehr Berlin-Mitte")
     st.markdown("---")
-    zaehler_name = st.text_input("Zählstellenname", value="Schliebener Straße")
-    lat = st.number_input("Breitengrad", value=51.6917, format="%.4f")
-    lon = st.number_input("Längengrad",  value=13.2333, format="%.4f")
+
+    auswahl = st.selectbox(
+        "Radverkehrszählstelle",
+        list(ZAEHLSTELLEN.keys())
+    )
+
+    counter = ZAEHLSTELLEN[auswahl]
+
+    counter_id = counter["id"]
+    counter_url = counter["url"]
+    zaehler_name = auswahl
+    lat = counter["lat"]
+    lon = counter["lon"]
+
     st.markdown("---")
-    
-# ------------------------------------------------------
-# Sidebar
-# ------------------------------------------------------
 
-config = render_sidebar()
-
-counter = COUNTERS[config["station"]]
-
-# ------------------------------------------------------
-# Hero
-# ------------------------------------------------------
-
-st.markdown(f"""
-<div class="hero">
-
-<h1>🚲 Radverkehr Berlin-Mitte</h1>
-
-<p>
-
-<strong>Zählstelle:</strong>
-{config["station"]}
-
-</p>
-
-st.markdown("<small style='color:#E8E9EC'>Labor-Hausaufgabe<br>im Rahmen der Lehrveranstaltung<br>Digitalisierung intermodaler Radverkehrsangebote<br>im Studiengang<br>Radverkehr in intermodalen Verkehrsnetzen<br>Sommersemester 2026</small>", unsafe_allow_html=True)
-
-</div>
-
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------------
-# KPI (Platzhalter)
-# ------------------------------------------------------
-
-k1, k2, k3, k4 = st.columns(4)
-
-k1.metric("Heute", "-")
-k2.metric("Gestern", "-")
-k3.metric("Diese Woche", "-")
-k4.metric("Dieses Jahr", "-")
-
-st.divider()
-
-# ------------------------------------------------------
-# Tabs
-# ------------------------------------------------------
-
-tab1, tab2, tab3, tab4 = st.tabs(
-    [
-        "📈 EcoCounter",
-        "🗺️ Karte",
-        "🚲 Maßnahmen",
-        "🚨 Unfälle"
-    ]
-)
-
-# ------------------------------------------------------
-# TAB 1
-# ------------------------------------------------------
-
-with tab1:
-
-    st.subheader(config["station"])
-
-    st.caption(
-        f"EcoCounter-ID: {counter['id']}"
+    st.markdown(
+        """
+        <small>
+        Labor-Hausaufgabe<br><br>
+        Digitalisierung intermodaler Radverkehrsangebote<br><br>
+        Studiengang Radverkehr in intermodalen Verkehrsnetzen<br><br>
+        Sommersemester 2026
+        </small>
+        """,
+        unsafe_allow_html=True,
     )
-
-    show_ecocounter(counter["url"])
-
-# ------------------------------------------------------
-# TAB 2
-# ------------------------------------------------------
-
-with tab2:
-
-    show_map(counter)
-
-# ------------------------------------------------------
-# TAB 3
-# ------------------------------------------------------
-
-with tab3:
-
-    st.info(
-        "Radverkehrsmaßnahmen werden in Teil 5 integriert."
-    )
-
-# ------------------------------------------------------
-# TAB 4
-# ------------------------------------------------------
-
-with tab4:
-
-    st.info(
-        "Unfallatlas wird in Teil 4 integriert."
-    )
-
-# ------------------------------------------------------
 
 # ── Hauptbereich ──────────────────────────────────────────────────────────────
 st.markdown(f"""
