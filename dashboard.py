@@ -224,7 +224,7 @@ with tab_start:
 
 
 with tab_zaehlstelle:
-    st.subheader(zaehler_name)
+    st.subheader(Zählstelle:</b> {zaehler_name}<br>)
     st.caption(f"EcoCounter-ID: {counter_id}")
 
     components.iframe(
