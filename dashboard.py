@@ -535,11 +535,11 @@ with tab_massnahmen:
             f"{len(features_mitte)} Maßnahmen im Bezirk Mitte"
         )
 
-       # --------------------------------------------------------------
+        # --------------------------------------------------------------
         # Maßnahme aus Sidebar oder Kartenklick ermitteln
         # --------------------------------------------------------------
 
-        # Standard: Auswahl aus der Sidebar
+        # Standardmäßig die Auswahl aus der Sidebar verwenden
         ausgewaehltes_feature = massnahme
 
         klick = kartendaten.get("last_clicked") if kartendaten else None
@@ -551,7 +551,7 @@ with tab_massnahmen:
                 klick["lat"]
             )
 
-            ausgewaehltes_feature = None
+            geklicktes_feature = None
             kleinster_abstand = float("inf")
 
             for feature in features_mitte:
@@ -562,101 +562,112 @@ with tab_massnahmen:
 
                     if abstand < kleinster_abstand:
                         kleinster_abstand = abstand
-                        ausgewaehltes_feature = feature
+                        geklicktes_feature = feature
 
-                except (ValueError, TypeError):
+                except (ValueError, TypeError, KeyError):
                     continue
 
-            # Etwa 80 bis 100 Meter Toleranz
+            # Nur bei einem hinreichend genauen Klick
+            # die Sidebar-Auswahl überschreiben
             if (
-                ausgewaehltes_feature is not None
+                geklicktes_feature is not None
                 and kleinster_abstand < 0.001
             ):
+                ausgewaehltes_feature = geklicktes_feature
 
-                daten = ausgewaehltes_feature.get(
-                    "properties",
-                    {}
-                )
+        # --------------------------------------------------------------
+        # Informationen anzeigen
+        # --------------------------------------------------------------
 
-                st.markdown("---")
-                st.subheader("📋 Informationen zur Maßnahme")
+        if ausgewaehltes_feature is not None:
 
-                strasse = daten.get("strassenname") or "–"
-                strassenseite = daten.get("strassenseite") or "–"
-                status = daten.get("status") or "–"
-                baustart = daten.get("baustart") or "–"
-                bauende = daten.get("bauende") or "–"
-                bauherr = daten.get("bauherr") or "–"
+            daten = ausgewaehltes_feature.get(
+                "properties",
+                {}
+            )
 
-                projektbeschreibung = (
-                    daten.get("projektbeschreibung_lang")
-                    or "Keine Projektbeschreibung vorhanden."
-                )
+            st.markdown("---")
+            st.subheader("📋 Informationen zur Maßnahme")
 
-                projektnummer = daten.get("projektnummer") or "–"
+            strasse = daten.get("strassenname") or "–"
+            strassenseite = daten.get("strassenseite") or "–"
+            status = daten.get("status") or "–"
+            baustart = daten.get("baustart") or "–"
+            bauende = daten.get("bauende") or "–"
+            bauherr = daten.get("bauherr") or "–"
+            projektnummer = daten.get("projektnummer") or "–"
+
+            projektbeschreibung = (
+                daten.get("projektbeschreibung_lang")
+                or "Keine Projektbeschreibung vorhanden."
+            )
+
+            streckenlaenge = (
+                daten.get("streckenlaenge1")
+                or daten.get("streckenlaenge")
+                or "–"
+            )
+
+            if streckenlaenge != "–":
+                streckenlaenge = f"{streckenlaenge} m"
+
+            st.markdown(
+                f"### 🚲 {strasse}"
+            )
+
+            st.caption(
+                f"Projektnummer: {projektnummer}"
+            )
+
+            spalte1, spalte2 = st.columns(2)
+
+            with spalte1:
 
                 st.markdown(
-                    f"### 🚲 {strasse}"
+                    f"""
+                    **Straße bzw. Straßenzug:**  
+                    {strasse}
+
+                    **Straßenseite:**  
+                    {strassenseite}
+
+                    **Status der Maßnahme:**  
+                    {status}
+
+                    **Bauherr:**  
+                    {bauherr}
+                    """
                 )
 
-                st.caption(
-                    f"Projektnummer: {projektnummer}"
+            with spalte2:
+
+                st.markdown(
+                    f"""
+                    **Quartal des Baustarts:**  
+                    {baustart}
+
+                    **Quartal des Bauendes:**  
+                    {bauende}
+
+                    **Netz-Art:**  
+                    {daten.get("netz_art1") or "–"}
+
+                    **Maßnahmen-Typ:**  
+                    {daten.get("massnahmen_typ1") or "–"}
+
+                    **Streckenlänge:**  
+                    {streckenlaenge}
+                    """
                 )
 
-                spalte1, spalte2 = st.columns(2)
-
-                with spalte1:
-                    st.markdown(
-                        f"""
-                        **Straße bzw. Straßenzug:**  
-                        {strasse}
-
-                        **Straßenseite:**  
-                        {strassenseite}
-
-                        **Status der Maßnahme:**  
-                        {status}
-
-                        **Bauherr:**  
-                        {bauherr}
-                        """
-                    )
-
-                with spalte2:
-                    st.markdown(
-                        f"""
-                        **Quartal des Baustarts:**  
-                        {baustart}
-
-                        **Quartal des Bauendes:**  
-                        {bauende}
-
-                        **Netz-Art:**  
-                        {daten.get("netz_art1") or "–"}
-
-                        **Maßnahmen-Typ:**  
-                        {daten.get("massnahmen_typ1") or "–"}
-
-                        **Streckenlänge:**  
-                        {daten.get("streckenlaenge1") or daten.get("streckenlaenge") or "–"} m
-                        """
-                    )
-
-                st.markdown("#### Projektbeschreibung")
-
-                st.write(projektbeschreibung)
-
-            else:
-                st.info(
-                    "Bitte möglichst genau auf eine blaue "
-                    "Maßnahmenlinie klicken."
-                )
+            st.markdown("#### Projektbeschreibung")
+            st.write(projektbeschreibung)
 
         else:
+
             st.info(
-                "Klicke auf eine Maßnahmenlinie, um die "
-                "zugehörigen Informationen unterhalb der Karte anzuzeigen."
-                "Es wird weiterhin die Auswahl aus der Sidebar angezeigt."
+                "Wähle in der Sidebar eine Radverkehrsmaßnahme aus "
+                "oder klicke auf eine Maßnahmenlinie."
             )
 
     except requests.exceptions.RequestException as fehler:
@@ -679,16 +690,6 @@ with tab_massnahmen:
             f"Die WFS-Daten konnten nicht verarbeitet werden: {fehler}"
         )
 
-folium.LayerControl(
-        collapsed=False
-    ).add_to(massnahmen_karte)
-
-st_folium(
-        massnahmen_karte,
-        height=600,
-        use_container_width=True,
-        key="massnahmen_karte"
-    )
 
 st.caption("Quelle: Geoportal Berlin / GB infraVelo GmbH")
 
