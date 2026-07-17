@@ -431,38 +431,54 @@ with tab_massnahmen:
         # Maßnahmen auf der Karte darstellen
         # --------------------------------------------------------------
 
-        if features_mitte:
+ if features_mitte:
 
-            folium.GeoJson(
-                geojson_mitte,
-                name="Radverkehrsmaßnahmen Mitte",
+    ausgewaehlte_nummer = None
 
-                style_function=lambda feature: {
-                    "color": "#1565c0",
-                    "weight": 6,
-                    "opacity": 0.85
-                },
+    if massnahme is not None:
+        ausgewaehlte_nummer = (
+            massnahme["properties"].get("projektnummer")
+        )
 
-                highlight_function=lambda feature: {
-                    "color": "#ff9800",
-                    "weight": 9,
-                    "opacity": 1
-                },
+    for feature in features_mitte:
 
-                tooltip=folium.GeoJsonTooltip(
-                    fields=[
-                        "strassenname",
-                        "status",
-                        "massnahmen_typ1"
-                    ],
-                    aliases=[
-                        "Straße:",
-                        "Status:",
-                        "Maßnahme:"
-                    ],
-                    sticky=False
-                )
-            ).add_to(massnahmen_karte)
+        props = feature["properties"]
+
+        ist_ausgewaehlt = (
+            ausgewaehlte_nummer is not None
+            and props.get("projektnummer")
+            == ausgewaehlte_nummer
+        )
+
+        farbe = "#ff9800" if ist_ausgewaehlt else "#1565c0"
+        breite = 8 if ist_ausgewaehlt else 6
+
+        folium.GeoJson(
+            feature,
+            style_function=lambda feature, farbe=farbe, breite=breite: {
+                "color": farbe,
+                "weight": breite,
+                "opacity": 0.9
+            },
+            highlight_function=lambda feature: {
+                "color": "#ff9800",
+                "weight": 9,
+                "opacity": 1
+            },
+            tooltip=folium.GeoJsonTooltip(
+                fields=[
+                    "strassenname",
+                    "status",
+                    "massnahmen_typ1"
+                ],
+                aliases=[
+                    "Straße:",
+                    "Status:",
+                    "Maßnahme:"
+                ],
+                sticky=False
+            )
+        ).add_to(massnahmen_karte)
 
         else:
             st.warning(
