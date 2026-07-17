@@ -177,8 +177,6 @@ st.markdown(f"""
 <div class="hero">
     <h1>🚲 Radverkehr im Bezirk Mitte</h1>
     <p>Zählstelle · Radverkehrsmaßnahmen · Unfalldaten</p>
-        <b>Zählstelle:</b> {zaehler_name}<br>
-    </p>
 </div>
 """, unsafe_allow_html=True)
 
