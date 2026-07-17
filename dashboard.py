@@ -119,11 +119,20 @@ def kpi_card(label, value, sub=""):
 with st.sidebar:
     st.markdown("## Radverkehr in Berlin-Mitte")
     st.markdown("---")
-    uploaded_file = st.file_uploader(
-        "Eco-Visio CSV hochladen",
-        type=["csv"],
-        help="Export aus Eco-Visio (stündliche Auflösung)"
-    )
+   ZAEHLSTELLEN = {
+    "Nordufer": 30003779,
+    "Invalidenstraße": 100032152,
+    "Karl-Marx-Allee": 300021646,
+    "Strausberger Platz": 300041564,
+    "Jannowitzbrücke": 100024661
+}
+
+auswahl = st.sidebar.selectbox(
+    "Radverkehrszählstelle",
+    list(ZAEHLSTELLEN.keys())
+)
+
+counter_id = ZAEHLSTELLEN[auswahl]
     st.markdown("---")
     zaehler_name = st.text_input("Zählstellenname", value="Schliebener Straße")
     lat = st.number_input("Breitengrad", value=51.6917, format="%.4f")
